@@ -238,7 +238,7 @@ void setup()
   pinMode(buttonLeft,INPUT_PULLUP);
   pinMode(buttonRight,INPUT_PULLUP);
 
-  firstLaunch(); // RENOMMER TOUS LES BOUTONS EN N W S E
+  firstLaunch(); // LA PROCHAINE FOIS RENOMMER TOUS LES BOUTONS EN N W S E
 
 /*   xTaskCreatePinnedToCore(manageLife,"ManageLife",10000, NULL,1,NULL,0);
   xTaskCreatePinnedToCore(displayLife,"DisplayLife",10000,NULL, 1,NULL,0);
