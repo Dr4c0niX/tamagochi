@@ -1,4 +1,5 @@
 #include "images.h"
+#include "functions.h"
 
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -15,8 +16,9 @@
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
 
 int hunger = 100;
+const long hungerInterval = 60000; // 1 minute en millisecondes
 unsigned long previousMillis = 0; 
-const long interval = 60000; // 1 minute en millisecondes
+unsigned long currentMillis;
 
 int cursorX = 59;
 int cursorY = 32;
@@ -24,10 +26,10 @@ int rep = 0; // 1 pour oui et 2 pour non
 
 int selectedChopper = 0; // 0 = Aucun peronnage sélectionné, 1 = Chopper B, 2 = Chopper A
 
-void manageLife(void * parameter) 
+/* void manageLife(void * parameter) 
 {
   for(;;) {
-    unsigned long currentMillis = millis();
+    currentMillis = millis();
     if(currentMillis - previousMillis >= interval) 
     {
       previousMillis = currentMillis;
@@ -51,7 +53,7 @@ void displayLife(void * parameter)
     display.display();
     delay(100);
   }
-}
+} */
 
 void displayMessageCenter(const char* message) 
 {
@@ -223,6 +225,10 @@ void firstLaunch() {
       displayMessageConfirmation();
     }
     displayMessageCenter("Bravo !");
+    delay(3000);
+    xTaskCreatePinnedToCore(manageStats,"ManageAllStats",10000, NULL,1,NULL,0); //appelle la fonction manageStats sur le coeur 0
+    xTaskCreatePinnedToCore(displayLifeBar,"DisplayLifeBar",10000,NULL, 1,NULL,0);
+
 }
 
 void setup() 
@@ -240,9 +246,7 @@ void setup()
 
   firstLaunch(); // LA PROCHAINE FOIS RENOMMER TOUS LES BOUTONS EN N W S E
 
-/*   xTaskCreatePinnedToCore(manageLife,"ManageLife",10000, NULL,1,NULL,0);
-  xTaskCreatePinnedToCore(displayLife,"DisplayLife",10000,NULL, 1,NULL,0);
- */}
+}
 
 void loop() 
 {

@@ -1,4 +1,7 @@
-const unsigned char life [] PROGMEM = {
+#ifndef IMAGES_H
+#define IMAGES_H
+
+const uint8_t life [] PROGMEM = {
   0x00, 0x06, 0x00, 0x00, 0x09, 0x00, 0x01, 0xe8, 0x80, 0x03, 0xb0, 0x40, 0x06, 0x18, 0x40, 0x0f, 
   0xbd, 0x80, 0x1d, 0x5a, 0x00, 0x38, 0xfb, 0x00, 0x2d, 0xef, 0x00, 0x17, 0xce, 0x00, 0x6f, 0xec, 
   0x00, 0x86, 0x78, 0x00, 0x83, 0xf0, 0x00, 0x45, 0xe0, 0x00, 0x24, 0x00, 0x00, 0x18, 0x00, 0x00
@@ -144,32 +147,4 @@ const unsigned char chopperB_walkPoint2 [] PROGMEM = {
 	0x9a, 0xa8, 0x01, 0x4a, 0xa8, 0x00, 0xcc, 0x70, 0x00, 0x00, 0x00
 };
 
-
-const unsigned char* tabgen0[2] = {
-	chopperA_monsterPoint,	
-	chopperB_monsterPoint
-};
-const unsigned char* tabgen1[2] = {
-  chopperA_brainPoint1,
-	chopperA_brainPoint2
-};
-const unsigned char* tabgen2[2] = {
-	chopperA_guardPoint1,
-	chopperA_guardPoint2
-};
-const unsigned char* tabgen3[2] = {
-	chopperA_walkPoint1,
-	chopperA_walkPoint2
-};
-const unsigned char* tabgen4[2] = {
-	chopperB_brainPoint1,
-	chopperB_brainPoint2
-};
-const unsigned char* tabgen5[2] = {
-	chopperB_guardPoint1,
-	chopperB_guardPoint2
-};
-const unsigned char* tabgen6[2] = {
-	chopperB_walkPoint1,
-	chopperB_walkPoint2
-};
+#endif // IMAGES_H
