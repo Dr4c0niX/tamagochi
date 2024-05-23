@@ -16,8 +16,17 @@
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
 
 int hunger = 100;
-const long hungerInterval = 60000; // 1 minute en millisecondes
-unsigned long previousMillis = 0; 
+int sleepLevel = 100;
+int hygiene = 100;
+int happiness = 100;
+const long hungerInterval = 15000; // 15 secondes en millisecondes
+const long sleepInterval = 30000; // 30 secondes en millisecondes
+const long hygieneInterval = 20000; // 20 secondes en millisecondes
+const long happinessInterval = 10000; // 10 secondes en millisecondes
+unsigned long previousMillisHunger = 0;
+unsigned long previousMillisSleep = 0;
+unsigned long previousMillisHygiene = 0;
+unsigned long previousMillisHappiness = 0;
 unsigned long currentMillis;
 
 int cursorX = 59;
@@ -26,34 +35,6 @@ int rep = 0; // 1 pour oui et 2 pour non
 
 int selectedChopper = 0; // 0 = Aucun peronnage sélectionné, 1 = Chopper B, 2 = Chopper A
 
-/* void manageLife(void * parameter) 
-{
-  for(;;) {
-    currentMillis = millis();
-    if(currentMillis - previousMillis >= interval) 
-    {
-      previousMillis = currentMillis;
-      if(hunger > 0) 
-      {
-        hunger--;
-      }
-    }
-    delay(1000);
-  }
-}
-
-void displayLife(void * parameter) 
-{
-  for(;;) {
-    display.fillRect(21, 4, 30, 8, BLACK);
-    display.drawBitmap(0, 0, life, 18, 16, WHITE);
-    display.setCursor(21, 4); // Positionne le curseur après l'image
-    display.print(hunger);
-    display.print("%");
-    display.display();
-    delay(100);
-  }
-} */
 
 void displayMessageCenter(const char* message) 
 {
@@ -88,7 +69,7 @@ void displayMessageConfirmation()
   display.println("de votre choix ?");
   display.setCursor(10, 50);
   display.println("Oui");
-  display.drawBitmap(ouiX, y, barre_soulignage, 7, 1, WHITE); //affiche la barre de soulignage
+  display.drawLine(ouiX, y, ouiX+7, y, WHITE); //affiche la barre de soulignage
   display.setCursor(100, 50);
   display.println("Non");
   display.display();
@@ -103,8 +84,8 @@ void displayMessageConfirmation()
     
     if (left)
     {
-      display.fillRect(ouiX, y, 7, 1, BLACK); //efface la barre de soulignage
-      display.drawBitmap(nonX, y, barre_soulignage, 7, 1, WHITE); //affiche la barre de soulignage
+      display.fillRect(ouiX, y, 8, 1, BLACK); //efface la barre de soulignage
+      display.drawLine(nonX, y, nonX+7, y, WHITE); //affiche la barre de soulignage pour savoir où on est
       display.display();
       tempX = ouiX;
       ouiX = nonX;
@@ -115,8 +96,8 @@ void displayMessageConfirmation()
 
     if (right)
     {
-      display.fillRect(ouiX, y, 7, 1, BLACK); //efface la barre de soulignage
-      display.drawBitmap(nonX, y, barre_soulignage, 7, 1, WHITE); //affiche la barre de soulignage
+      display.fillRect(ouiX, y, 8, 1, BLACK); //efface la barre de soulignage
+      display.drawLine(nonX, y, nonX+7, y, WHITE); //affiche la barre de soulignage pour savoir où on est
       display.display();
       tempX = ouiX;
       ouiX = nonX;
@@ -170,10 +151,10 @@ void moveCursor()
     if (cursorX > 14 && cursorX < 39 && cursorY > 25 && cursorY < 52) 
     {
       display.clearDisplay();
-      display.drawBitmap(15, 26, chopperB_brainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
-      display.drawBitmap(90, 26, chopperA_brainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
-      display.drawBitmap(12, 23, cadre, 29, 31, WHITE); //affiche le cadre
-      display.drawBitmap(cursorX, cursorY, curseur_main, 17, 21, WHITE); // affiche le curseur main
+      display.drawBitmap(15, 26, chopperBBrainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
+      display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
+      display.drawBitmap(12, 23, frame, 29, 31, WHITE); //affiche le frame
+      display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); // affiche le curseur main
       display.display();
 
       if ((up + down + right + left) >= 2) 
@@ -184,10 +165,10 @@ void moveCursor()
     else if (cursorX > 89 && cursorX < 114 && cursorY > 25 && cursorY < 52) 
     {
       display.clearDisplay();
-      display.drawBitmap(90, 26, chopperA_brainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
-      display.drawBitmap(15, 26, chopperB_brainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
-      display.drawBitmap(87, 23, cadre, 29, 31, WHITE); //affiche le cadre
-      display.drawBitmap(cursorX, cursorY, curseur_main, 17, 21, WHITE); // affiche le curseur main
+      display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
+      display.drawBitmap(15, 26, chopperBBrainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
+      display.drawBitmap(87, 23, frame, 29, 31, WHITE); //affiche le frame
+      display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); // affiche le curseur main
       display.display();
 
       if ((up + down + right + left) >= 2) 
@@ -198,9 +179,9 @@ void moveCursor()
     else 
     {
       display.clearDisplay();
-      display.drawBitmap(15, 26, chopperB_brainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
-      display.drawBitmap(90, 26, chopperA_brainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
-      display.drawBitmap(cursorX, cursorY, curseur_souris, 11, 18, WHITE); // affiche le curseur flèche
+      display.drawBitmap(15, 26, chopperBBrainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
+      display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
+      display.drawBitmap(cursorX, cursorY, mouseCursor, 11, 18, WHITE); // affiche le curseur flèche
       display.display();
     }
   }
@@ -217,7 +198,7 @@ void firstLaunch() {
     waitForButtonPress();
     displayMessageCenter("Pour commencer, vous allez devoir choisir votre personnage.");
     waitForButtonPress();
-    displayMessageCenter("Appuyez sur deux boutons en meme temps pour confirmez votre choix.");
+    displayMessageCenter("Appuyez sur deux boutons en meme temps pour confirmer votre choix.");
     waitForButtonPress();
     while (rep != 1)
     {
@@ -226,9 +207,9 @@ void firstLaunch() {
     }
     displayMessageCenter("Bravo !");
     delay(3000);
+
     xTaskCreatePinnedToCore(manageStats,"ManageAllStats",10000, NULL,1,NULL,0); //appelle la fonction manageStats sur le coeur 0
     xTaskCreatePinnedToCore(displayLifeBar,"DisplayLifeBar",10000,NULL, 1,NULL,0);
-
 }
 
 void setup() 
