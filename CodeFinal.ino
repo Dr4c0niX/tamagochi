@@ -1,20 +1,20 @@
 #include "images.h"
 #include "functions.h"
 
-#include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
 #define SCREEN_ADDRESS 0x3C
 #define OLED_RESET 0x3C
 
-#define buttonUp 14 //N
-#define buttonDown 27 //S
-#define buttonLeft 26 //W
-#define buttonRight 25 //E
+const int buttonUp = 14; //N
+const int buttonDown = 27; //S
+const int buttonLeft = 26; //W
+const int buttonRight = 25; //E
 
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
 
+int health;
 int hunger = 100;
 int sleepLevel = 100;
 int hygiene = 100;
@@ -188,7 +188,7 @@ void moveCursor()
 }
 
 void firstLaunch() {
-    display.setCursor(12, 20);
+    /* display.setCursor(12, 20);
     display.println("Appuyez sur N pour");
     display.setCursor(12, 35);
     display.println("passer a la suite.");
@@ -206,10 +206,10 @@ void firstLaunch() {
       displayMessageConfirmation();
     }
     displayMessageCenter("Bravo !");
-    delay(3000);
+    delay(3000); */
 
     xTaskCreatePinnedToCore(manageStats,"ManageAllStats",10000, NULL,1,NULL,0); //appelle la fonction manageStats sur le coeur 0
-    xTaskCreatePinnedToCore(displayLifeBar,"DisplayLifeBar",10000,NULL, 1,NULL,0);
+    xTaskCreatePinnedToCore(displayHealthBar,"DisplayLifeBar",10000,NULL, 1,NULL,0);
 }
 
 void setup() 
