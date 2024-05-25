@@ -28,11 +28,13 @@ unsigned long previousMillisSleep = 0;
 unsigned long previousMillisHygiene = 0;
 unsigned long previousMillisHappiness = 0;
 unsigned long currentMillis;
+int displayIndex = 0; //variable pour savoir quel écran afficher (0 = menu principal, 1 = menu des stats)
+int displayIndexStats = 0; //quel écran afficher dans le menu des stats (0 = santé, 1 = faim, 2 = sommeil, 3 = hygiène, 4 = bonheur)
 
 int cursorX = 59;
 int cursorY = 32;
-int rep = 0; // 1 pour oui et 2 pour non
 
+int rep = 0; // 1 pour oui et 2 pour non
 int selectedChopper = 0; // 0 = Aucun peronnage sélectionné, 1 = Chopper B, 2 = Chopper A
 
 
@@ -188,7 +190,7 @@ void moveCursor()
 }
 
 void firstLaunch() {
-    /* display.setCursor(12, 20);
+/*     display.setCursor(12, 20);
     display.println("Appuyez sur N pour");
     display.setCursor(12, 35);
     display.println("passer a la suite.");
@@ -208,8 +210,10 @@ void firstLaunch() {
     displayMessageCenter("Bravo !");
     delay(3000); */
 
+    displayIndex = 1;
+
     xTaskCreatePinnedToCore(manageStats,"ManageAllStats",10000, NULL,1,NULL,0); //appelle la fonction manageStats sur le coeur 0
-    xTaskCreatePinnedToCore(displayHealthBar,"DisplayLifeBar",10000,NULL, 1,NULL,0);
+    xTaskCreatePinnedToCore(statsMenu,"DisplayStatsMenu",10000,NULL, 1,NULL,1);
 }
 
 void setup() 

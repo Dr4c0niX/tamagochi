@@ -46,6 +46,65 @@ void manageStats(void * parameter)
   }
 }
 
+void displayHealthBar(void * parameter) 
+{
+  bool infoWindow = false; //permet de savoir si la fenêtre d'information est ouverte ou non
+  bool healthBarOn = true;
+  display.clearDisplay();
+  display.drawBitmap(4, 5, leftArrow, 3, 5, WHITE);
+  display.drawBitmap(121, 5, rightArrow, 3, 5, WHITE);
+  display.setCursor(50, 5);
+  display.print("Sante");
+  display.display();
+  
+  for(;;) {
+    if (infoWindow == false) {
+      display.fillRect(23, 26, 90, 31, BLACK); //efface la fenêtre d'information
+    }
+
+    display.drawBitmap(0, 20, healthIcon, 18, 16, WHITE);
+    display.fillRect(23, 24, 123, 8, BLACK); //efface le contenu de la barre de vie
+    display.fillRect(0, 37, 128, 27, BLACK); //efface le pourcentage affiché et le texte en bas
+
+    if (health < 10) { //permet de faire clignoter la barre de vie (si health < 10)
+      healthBarOn = !healthBarOn;
+    } else {
+      healthBarOn = true;
+    }
+
+    if (healthBarOn) { //rempli la barre de vie si healthBarOn est vrai
+      display.fillRect(23, 24, health, 8, WHITE);
+    }
+
+    display.drawRect(21, 22, 104, 12, WHITE); //cadre de la barre de vie
+    display.setCursor(59, 37);
+    display.print(health);
+    display.println("%");
+
+    if (digitalRead(buttonDown) == LOW) {
+      infoWindow = !infoWindow; //bascule l'état de la fenêtre
+      delay(200); //pour éviter le rebond
+    }
+
+    if (infoWindow) {
+      display.fillRect(110, 55, 17, 7, BLACK); //efface l'icône "appuyez sur S pour plus d'infos"
+      display.fillRect(23, 26, 90, 31, BLACK); //efface du contenu pour faire apparaître la fenêtre
+      display.drawRect(23, 26, 90, 31, WHITE); //cadre de la fenêtre
+      display.setCursor(35, 30);
+      display.println("Cumul des 4");
+      display.setCursor(33, 45);
+      display.println("statistiques");
+    } else {
+      display.drawBitmap(110, 55, pressButtonSIcon, 17, 7, WHITE); //affiche l'icône "appuyez sur S pour plus d'infos" (obligé de mettre ici car sinon il est effacé par un fillRect()
+      display.setCursor(79,55);
+      display.print("Infos");
+    }
+
+    display.display();
+    delay(200); //petit délai pour que quand il y a le clignotement, on puisse voir la barre de bonheur éteinte/allumée
+  }
+}
+
 void displayHungerBar(void * parameter)
 {
   bool hungerBarOn = true;
@@ -198,7 +257,6 @@ void displayHappinessBar(void * parameter)
   bool happinessBarOn = true;
   display.clearDisplay();
   display.drawBitmap(4, 5, leftArrow, 3, 5, WHITE);
-  display.drawBitmap(121, 5, rightArrow, 3, 5, WHITE);
   display.setCursor(46, 5);
   display.print("Bonheur");
   display.display();
@@ -242,61 +300,29 @@ void displayHappinessBar(void * parameter)
   }
 }
 
-void displayHealthBar(void * parameter) 
-{
-  bool infoWindow = false; //permet de savoir si la fenêtre d'information est ouverte ou non
-  bool healthBarOn = true;
-  display.clearDisplay();
-  display.drawBitmap(4, 5, leftArrow, 3, 5, WHITE);
-  display.drawBitmap(121, 5, rightArrow, 3, 5, WHITE);
-  display.setCursor(50, 5);
-  display.print("Sante");
-  display.display();
-  
-  for(;;) {
-    if (infoWindow == false) {
-      display.fillRect(23, 26, 90, 31, BLACK); //efface la fenêtre d'information
+void statsMenu(void* parameter) {  
+  void (*displayFunctions[])(void*) = {displayHealthBar, displayHungerBar, displaySleepBar, displayHappinessBar, displayHygieneBar};
+  while (displayIndex !=0) 
+  {
+    Serial.println(displayIndexStats); // NE FOCTIONNE PAS
+    if (digitalRead(buttonRight) == LOW) {
+      displayIndexStats = displayIndexStats + 1;
+      if (displayIndexStats >  4)
+      {
+        displayIndexStats = 4;
+      }
+      delay(200); //pour éviter les rebonds
     }
 
-    display.drawBitmap(0, 20, healthIcon, 18, 16, WHITE);
-    display.fillRect(23, 24, 123, 8, BLACK); //efface le contenu de la barre de vie
-    display.fillRect(0, 37, 128, 27, BLACK); //efface le pourcentage affiché et le texte en bas
-
-    if (health < 10) { //permet de faire clignoter la barre de vie (si health < 10)
-      healthBarOn = !healthBarOn;
-    } else {
-      healthBarOn = true;
+    if (digitalRead(buttonLeft) == LOW) {
+      displayIndexStats = displayIndexStats - 1;
+      if (displayIndexStats < 0)
+      {
+        displayIndex = 0;
+      }
+      delay(200); // Pour éviter le rebond
     }
 
-    if (healthBarOn) { //rempli la barre de vie si healthBarOn est vrai
-      display.fillRect(23, 24, health, 8, WHITE);
-    }
-
-    display.drawRect(21, 22, 104, 12, WHITE); //cadre de la barre de vie
-    display.setCursor(59, 37);
-    display.print(health);
-    display.println("%");
-
-    if (digitalRead(buttonDown) == LOW) {
-      infoWindow = !infoWindow; //bascule l'état de la fenêtre
-      delay(200); //pour éviter le rebond
-    }
-
-    if (infoWindow) {
-      display.fillRect(110, 55, 17, 7, BLACK); //efface l'icône "appuyez sur S pour plus d'infos"
-      display.fillRect(23, 26, 90, 31, BLACK); //efface du contenu pour faire apparaître la fenêtre
-      display.drawRect(23, 26, 90, 31, WHITE); //cadre de la fenêtre
-      display.setCursor(35, 30);
-      display.println("Cumul des 4");
-      display.setCursor(33, 45);
-      display.println("statistiques");
-    } else {
-      display.drawBitmap(110, 55, pressButtonSIcon, 17, 7, WHITE); //affiche l'icône "appuyez sur S pour plus d'infos" (obligé de mettre ici car sinon il est effacé par un fillRect()
-      display.setCursor(79,55);
-      display.print("Infos");
-    }
-
-    display.display();
-    delay(200); //petit délai pour que quand il y a le clignotement, on puisse voir la barre de bonheur éteinte/allumée
+    displayFunctions[displayIndexStats](NULL); //affiche la page correspondante à l'index
   }
 }

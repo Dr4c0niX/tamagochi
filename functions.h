@@ -24,6 +24,8 @@ extern int hunger;
 extern int sleepLevel;
 extern int happiness;
 extern int hygiene;
+extern int displayIndex;
+extern int displayIndexStats;
 extern const uint8_t hungerIcon[];
 extern const uint8_t sleepIcon[];
 extern const uint8_t healthIcon[];
@@ -41,5 +43,6 @@ void displayHungerBar(void * parameter);
 void displaySleepBar(void * parameter);
 void displayHygieneBar(void * parameter);
 void displayHappinessBar(void * parameter);
+void statsMenu(void* parameter);
 
 #endif // FUNCTIONS_H
