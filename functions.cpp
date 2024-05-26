@@ -102,6 +102,16 @@ void displayHealthBar(void * parameter)
 
     display.display();
     delay(200); //petit délai pour que quand il y a le clignotement, on puisse voir la barre de bonheur éteinte/allumée
+
+    if (digitalRead(buttonLeft) == LOW)
+    {
+      //displayMenu(NULL);
+    }
+
+    if (digitalRead(buttonRight) == LOW)
+    {
+      displayHungerBar(NULL);
+    }
   }
 }
 
@@ -151,6 +161,16 @@ void displayHungerBar(void * parameter)
 
     display.display();
     delay(200); //petit délai pour que quand il y a le clignotement, on puisse voir la barre de faim éteinte/allumée
+
+    if (digitalRead(buttonLeft) == LOW)
+    {
+      displayHealthBar(NULL);
+    }
+
+    if (digitalRead(buttonRight) == LOW)
+    {
+      displaySleepBar(NULL);
+    }
   }
 }
 
@@ -200,6 +220,16 @@ void displaySleepBar(void * parameter)
 
     display.display();
     delay(200); //petit délai pour que quand il y a le clignotement, on puisse voir la barre de sommeil éteinte/allumée
+
+    if (digitalRead(buttonLeft) == LOW)
+    {
+      displayHungerBar(NULL);
+    }
+
+    if (digitalRead(buttonRight) == LOW)
+    {
+      displayHygieneBar(NULL);
+    }
   }
 }
 
@@ -249,7 +279,17 @@ void displayHygieneBar(void * parameter)
 
     display.display();
     delay(200); //petit délai pour que quand il y a le clignotement, on puisse voir la barre d'hygiene éteinte/allumée
-  }
+
+    if (digitalRead(buttonLeft) == LOW)
+    {
+      displaySleepBar(NULL);
+    }
+
+    if (digitalRead(buttonRight) == LOW)
+    {
+      displayHappinessBar(NULL);
+    }
+  }  
 }
 
 void displayHappinessBar(void * parameter) 
@@ -297,32 +337,10 @@ void displayHappinessBar(void * parameter)
 
     display.display();
     delay(200); //petit délai pour que quand il y a le clignotement, on puisse voir la barre de bonheur éteinte/allumée
-  }
-}
 
-void statsMenu(void* parameter) {  
-  void (*displayFunctions[])(void*) = {displayHealthBar, displayHungerBar, displaySleepBar, displayHappinessBar, displayHygieneBar};
-  while (displayIndex !=0) 
-  {
-    Serial.println(displayIndexStats); // NE FOCTIONNE PAS
-    if (digitalRead(buttonRight) == LOW) {
-      displayIndexStats = displayIndexStats + 1;
-      if (displayIndexStats >  4)
-      {
-        displayIndexStats = 4;
-      }
-      delay(200); //pour éviter les rebonds
+    if (digitalRead(buttonLeft) == LOW)
+    {
+      displayHygieneBar(NULL);
     }
-
-    if (digitalRead(buttonLeft) == LOW) {
-      displayIndexStats = displayIndexStats - 1;
-      if (displayIndexStats < 0)
-      {
-        displayIndex = 0;
-      }
-      delay(200); // Pour éviter le rebond
-    }
-
-    displayFunctions[displayIndexStats](NULL); //affiche la page correspondante à l'index
   }
 }

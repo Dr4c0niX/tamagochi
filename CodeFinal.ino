@@ -213,7 +213,7 @@ void firstLaunch() {
     displayIndex = 1;
 
     xTaskCreatePinnedToCore(manageStats,"ManageAllStats",10000, NULL,1,NULL,0); //appelle la fonction manageStats sur le coeur 0
-    xTaskCreatePinnedToCore(statsMenu,"DisplayStatsMenu",10000,NULL, 1,NULL,1);
+    xTaskCreatePinnedToCore(displayHealthBar,"DisplayStatsMenu",10000,NULL, 1,NULL,1);
 }
 
 void setup() 
