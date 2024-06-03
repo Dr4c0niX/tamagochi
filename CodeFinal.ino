@@ -126,7 +126,8 @@ void displayMessageConfirmation()
   }
 }
 
-void waitForButtonPress() {
+void waitForButtonPress()
+{
   while(digitalRead(buttonUp) == HIGH) {
     delay(10);
   }
@@ -544,6 +545,88 @@ void displayHappinessBar()
   }
 }
 
+void chopperFeed()
+{
+  int x = 5;
+  int y = 30;
+  bool eyesOpen = true;
+  bool animation = true;
+  bool objectiveReached = false;
+  //début de l'animation
+  display.clearDisplay();
+  display.drawBitmap(0, 0, kitchenDoorClose, 128, 64, WHITE);
+  display.display();
+  delay(1000); 
+  display.clearDisplay();
+  display.drawBitmap(0, 0, kitchenDoorOpen, 128, 64, WHITE);
+  display.display();
+  delay(1000);
+  display.fillRect(x, y, 23, 25, BLACK);
+  display.drawBitmap(x, y, chopper1, 23, 25, WHITE); //AJOUTER ANIMATION POUR QU'IL CLIGNE DES YEUX EN ARRIAVNT
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+  display.drawBitmap(0, 0, kitchenDoorClose, 128, 64, WHITE);
+  display.fillRect(x, y, 23, 25, BLACK);
+  display.drawBitmap(x, y, chopper1, 23, 25, WHITE);
+  display.fillRect(30, 2, 46, 29, BLACK);
+  display.drawBitmap(30, 2, chopperPhrase, 46, 29, WHITE);
+  display.display();
+  delay(3000);
+  while (objectiveReached == false)
+  {
+    display.clearDisplay();
+    display.drawBitmap(0, 0, kitchenDoorClose, 128, 64, WHITE);
+    bool left = digitalRead(buttonLeft) == LOW;
+    bool right = digitalRead(buttonRight) == LOW;
+
+    if(left && x < 13) {x++; y++;}
+    if(right && x > 5 && x < 13) {x--; y--;}
+    if (left && x > 12 && x < 27) {x++;}
+    if (right && x > 12 && x < 28) {x--;}
+    if (left && x > 26 && x < 34) {x++; y--;}
+    if (right && x > 27 && x < 34) {x--; y++;}
+
+    if ((right + left) == 0) //si aucun bouton n'est appuyé, Chopper cligne des yeux
+    {
+      display.fillRect(x, y, 23, 25, BLACK); //efface la zone de l'image pour afficher l'image de Chopper
+      if (eyesOpen)
+      {
+        display.drawBitmap(x, y, chopper1, 23, 25, WHITE); //affiche l'image de Chopper avec les yeux ouverts
+      }
+      else
+      {
+        display.drawBitmap(x, y, chopper2, 23, 25, WHITE); //affiche l'image de Chopper avec les yeux fermés
+      }
+      delay(500); //petit délai pour faire clignoter les yeux
+      eyesOpen = !eyesOpen;
+    } 
+    else //si un bouton est appuyé alors Chopper marche
+    {
+      display.fillRect(x, y, 23, 26, BLACK); //efface la zone de l'image pour afficher l'image de Chopper qui marche, je dois le faire ici car l'image de Chopper qui marche fait y=26 et non y=25
+      if (animation)
+      {
+        display.drawBitmap(x, y, chopperWalkingLeft, 23, 26, WHITE); // affiche l'image de Chopper qui marche avec la jambe gauche devant
+      }
+      else
+      {
+        display.drawBitmap(x, y, chopperWalkingRight, 23, 26, WHITE); // affiche l'image de Chopper qui marche avec la jambe droite devant
+      }
+      animation = !animation;
+      delay(50); //petit délai pour l'animation de marche
+    }
+
+    if (x == 34) 
+    {
+      objectiveReached = true;
+    }
+    display.display();
+  }
+  display.clearDisplay();
+  display.print("Fin de l'animation");
+  //display.display();
+}
+
 void displayHub(void* parameter)
 {
   cursorX = 52; //position de départ de Chopper
@@ -781,7 +864,8 @@ void displayHub(void* parameter)
   } */
 }
 
-void firstLaunch() {
+void firstLaunch()
+{
     display.setCursor(12, 20);
     display.println("Appuyez sur N pour");
     display.setCursor(12, 35);
@@ -819,7 +903,14 @@ void setup()
   pinMode(buttonLeft,INPUT_PULLUP);
   pinMode(buttonRight,INPUT_PULLUP);
 
-  firstLaunch(); // LA PROCHAINE FOIS RENOMMER TOUS LES BOUTONS EN N W S E
+  displayIndex = 2;
+          chopper1 = chopperABrainPoint1; // Chopper A yeux ouverts
+        chopper2 = chopperABrainPoint2; // Chopper A yeux fermés
+        chopperWalkingLeft = chopperAWalkingLeft; // Chopper A pour l'animation de marche avec la jambe gauche
+        chopperWalkingRight = chopperAWalkingRight; // Chopper A pour l'animation de marche avec la jambe droite
+
+  //firstLaunch(); // LA PROCHAINE FOIS RENOMMER TOUS LES BOUTONS EN N W S E
+  chopperFeed();
 }
 
 void loop() 
