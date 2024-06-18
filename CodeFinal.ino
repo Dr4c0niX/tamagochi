@@ -39,6 +39,7 @@ const unsigned char* chopper1; //Chopper choisit avec les yeux ouverts
 const unsigned char* chopper2; //Chopper choisit avec les yeux fermés
 const unsigned char* chopperWalkingLeft; //Chopper choisit pour l'animation de marche avec la jambe gauche devant
 const unsigned char* chopperWalkingRight; //Chopper choisit pour l'animation de marche avec la jambe droite devant
+const unsigned char* eatAnimationChopper[8]; //tableau contenant les images de l'animation de manger de Chopper
 
 void displayMessageCenter(const char* message) 
 {
@@ -171,6 +172,14 @@ void selectChopper()
         chopper2 = chopperBBrainPoint2; // Chopper B yeux fermés
         chopperWalkingLeft = chopperBWalkingLeft; // Chopper B pour l'animation avec la jambe gauche
         chopperWalkingRight = chopperBWalkingRight; // Chopper B pour l'animation avec la jambe droite
+        eatAnimationChopper[0] = eatAnimationChopperB1;
+        eatAnimationChopper[1] = eatAnimationChopperB2;
+        eatAnimationChopper[2] = eatAnimationChopperB3;
+        eatAnimationChopper[3] = eatAnimationChopperB4;
+        eatAnimationChopper[4] = eatAnimationChopperB5;
+        eatAnimationChopper[5] = eatAnimationChopperB6;
+        eatAnimationChopper[6] = eatAnimationChopperB7;
+        eatAnimationChopper[7] = eatAnimationChopperB8;
       }
     }
     else if (cursorX > 89 && cursorX < 114 && cursorY > 25 && cursorY < 52) 
@@ -188,6 +197,14 @@ void selectChopper()
         chopper2 = chopperABrainPoint2; // Chopper A yeux fermés
         chopperWalkingLeft = chopperAWalkingLeft; // Chopper A pour l'animation de marche avec la jambe gauche
         chopperWalkingRight = chopperAWalkingRight; // Chopper A pour l'animation de marche avec la jambe droite
+        eatAnimationChopper[0] = eatAnimationChopperA1;
+        eatAnimationChopper[1] = eatAnimationChopperA2;
+        eatAnimationChopper[2] = eatAnimationChopperA3;
+        eatAnimationChopper[3] = eatAnimationChopperA4;
+        eatAnimationChopper[4] = eatAnimationChopperA5;
+        eatAnimationChopper[5] = eatAnimationChopperA6;
+        eatAnimationChopper[6] = eatAnimationChopperA7;
+        eatAnimationChopper[7] = eatAnimationChopperA8;
       }
     }
     else 
@@ -554,38 +571,50 @@ void chopperFeed()
   bool objectiveReached = false;
   //début de l'animation
   display.clearDisplay();
-  display.drawBitmap(0, 0, kitchenDoorClose, 128, 64, WHITE);
+  display.drawBitmap(0, 0, kitchenDoorClose, 128, 64, WHITE); //porte fermée
   display.display();
-  delay(1000); 
+  delay(1000); //affiche l'image pendant 1 seconde
   display.clearDisplay();
-  display.drawBitmap(0, 0, kitchenDoorOpen, 128, 64, WHITE);
-  display.display();
-  delay(1000);
+  display.drawBitmap(0, 0, kitchenDoorOpen, 128, 64, WHITE); //porte ouverte
+  delay(1000); //affiche l'image pendant 1 seconde
   display.fillRect(x, y, 23, 25, BLACK);
-  display.drawBitmap(x, y, chopper1, 23, 25, WHITE); //AJOUTER ANIMATION POUR QU'IL CLIGNE DES YEUX EN ARRIAVNT
+  display.drawBitmap(x, y, chopper1, 23, 25, WHITE); //Chopper entre par la porte
   display.display();
-  delay(2000);
-  display.clearDisplay();
-  display.drawBitmap(0, 0, kitchenDoorClose, 128, 64, WHITE);
-  display.fillRect(x, y, 23, 25, BLACK);
-  display.drawBitmap(x, y, chopper1, 23, 25, WHITE);
-  display.fillRect(30, 2, 46, 29, BLACK);
-  display.drawBitmap(30, 2, chopperPhrase, 46, 29, WHITE);
-  display.display();
-  delay(3000);
-  while (objectiveReached == false)
+  delay(2000); //affiche l'image pendant 2 secondes
+
+  for (int i = 0; i < 6; i++) //la porte se ferme et Chopper affiche une phrase en clignant des yeux
+  {
+    display.clearDisplay();
+    display.drawBitmap(0, 0, kitchenDoorClose, 128, 64, WHITE); //porte fermée
+    display.fillRect(x, y, 23, 25, BLACK);
+    if (eyesOpen)
+    {
+      display.drawBitmap(x, y, chopper1, 23, 25, WHITE); //Chopper yeux ouverts
+    }
+    else
+    {
+      display.drawBitmap(x, y, chopper2, 23, 25, WHITE); //Chopper yeux fermés
+    }
+    display.fillRect(30, 2, 46, 29, BLACK);
+    display.drawBitmap(30, 2, chopperPhrase, 46, 29, WHITE); //affiche la phrase de Chopper
+    display.display();
+    delay(500); //petit délai pour faire clignoter les yeux
+    eyesOpen = !eyesOpen; //inverse l'état des yeux
+  }
+
+  while (objectiveReached == false) //tant que l'utilisateur n'a pas fait bougé Chopper jusqu'à la table, il peut le déplacer à gauche ou à droite
   {
     display.clearDisplay();
     display.drawBitmap(0, 0, kitchenDoorClose, 128, 64, WHITE);
     bool left = digitalRead(buttonLeft) == LOW;
     bool right = digitalRead(buttonRight) == LOW;
 
-    if(left && x < 13) {x++; y++;}
-    if(right && x > 5 && x < 13) {x--; y--;}
-    if (left && x > 12 && x < 27) {x++;}
-    if (right && x > 12 && x < 28) {x--;}
-    if (left && x > 26 && x < 34) {x++; y--;}
-    if (right && x > 27 && x < 34) {x--; y++;}
+    if(right && x < 13) {x++; y++;}
+    if(left && x > 5 && x < 13) {x--; y--;}
+    if (right && x > 12 && x < 29) {x++;}
+    if (left && x > 12 && x < 29) {x--;}
+    if (right && x > 28 && x < 34) {x++; y--;}
+    if (left && x > 28 && x < 34) {x--; y++;}
 
     if ((right + left) == 0) //si aucun bouton n'est appuyé, Chopper cligne des yeux
     {
@@ -616,18 +645,62 @@ void chopperFeed()
       delay(50); //petit délai pour l'animation de marche
     }
 
-    if (x == 34) 
+    if (x == 34) //quand Chopper atteint la table on enlève son contrôle au joueur
     {
       objectiveReached = true;
     }
+
     display.display();
   }
+
+  for (int i=0; i<8; i++) //animation de Chopper qui mange
+  {
+    display.clearDisplay();
+    if (i< 4)
+    {
+      display.drawBitmap(0, 0, eatAnimationChopper[i], 128, 64, WHITE);
+      delay(200);
+    }
+    else
+    {
+      display.drawBitmap(0, 0, eatAnimationChopper[i], 128, 64, WHITE);
+      delay(500);
+    }
+    display.display();
+  }
+  delay(1000);
+  int addHunger = random(20, 61); 
+  hunger += addHunger; //ajoute un nombre aléatoire entre 20 et 60 à la faim
+  if (hunger > 100) //si la faim dépasse 100, on la remet à 100
+  {
+    hunger = 100;
+  }
   display.clearDisplay();
-  display.print("Fin de l'animation");
-  //display.display();
+  display.drawRect(17, 17, 94, 43, WHITE);
+  display.drawBitmap(25, 32, hungerIcon, 18, 16, WHITE);
+  display.setCursor(52, 35);
+  display.print("Faim +" + String(addHunger) + "%");  
+  display.display();
+  delay(4000);
+
+  for (int x2 = 128; x2 >= -47; x2-=2)
+  {
+    display.clearDisplay();
+    display.fillRect(0, 1, x2, 64, WHITE );
+    display.drawBitmap(x2, 1, transition1, 8, 64, WHITE);
+    display.drawBitmap(x2+8, 1, transition2, 8, 64, WHITE);
+    display.drawBitmap(x2+16, 1, transition3, 7, 64, WHITE);
+    display.drawBitmap(x2+23, 1, transition4, 8, 64, WHITE);
+    display.drawBitmap(x2+31, 1, transition5, 8, 64, WHITE);
+    display.drawBitmap(x2+39, 1, transition5, 8, 64, WHITE);
+    display.display();
+  }
+  delay(1000);
+  displayIndex = 0;
+  displayHub(NULL);
 }
 
-void displayHub(void* parameter)
+void displayHub(void* parameter) //augmenter la hitbox des cadres
 {
   cursorX = 52; //position de départ de Chopper
   cursorY = 38; //position de départ de Chopper
@@ -846,10 +919,11 @@ void displayHub(void* parameter)
   {
     displayHealthBar();
   }
-  /* else if (displayIndex == 2) //si on a choisi nourrir
+   else if (displayIndex == 2) //si on a choisi nourrir
   {
-    displayFeed();
+    chopperFeed();
   }
+  /*
   else if (displayIndex == 3) //si on a choisi jouer
   {
     displayPlay();
@@ -890,10 +964,10 @@ void firstLaunch()
     xTaskCreatePinnedToCore(displayHub,"DisplayStatsMenu",10000,NULL, 1,NULL,1);
 }
 
-void setup() 
+void setup()  
 {
   display.begin(SSD1306_SWITCHCAPVCC, OLED_RESET); 
-  Serial.begin(9600);
+  Serial.begin(115200);
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.clearDisplay();
@@ -903,13 +977,23 @@ void setup()
   pinMode(buttonLeft,INPUT_PULLUP);
   pinMode(buttonRight,INPUT_PULLUP);
 
-  displayIndex = 2;
+   displayIndex = 2;
           chopper1 = chopperABrainPoint1; // Chopper A yeux ouverts
         chopper2 = chopperABrainPoint2; // Chopper A yeux fermés
         chopperWalkingLeft = chopperAWalkingLeft; // Chopper A pour l'animation de marche avec la jambe gauche
         chopperWalkingRight = chopperAWalkingRight; // Chopper A pour l'animation de marche avec la jambe droite
+                eatAnimationChopper[0] = eatAnimationChopperB1;
+        eatAnimationChopper[1] = eatAnimationChopperB2;
+        eatAnimationChopper[2] = eatAnimationChopperB3;
+        eatAnimationChopper[3] = eatAnimationChopperB4;
+        eatAnimationChopper[4] = eatAnimationChopperB5;
+        eatAnimationChopper[5] = eatAnimationChopperB6;
+        eatAnimationChopper[6] = eatAnimationChopperB7;
+        eatAnimationChopper[7] = eatAnimationChopperB8;
+            xTaskCreatePinnedToCore(manageStats,"ManageAllStats",10000, NULL,1,NULL,0); //appelle la fonction manageStats sur le coeur 0
 
-  //firstLaunch(); // LA PROCHAINE FOIS RENOMMER TOUS LES BOUTONS EN N W S E
+
+  //firstLaunch(); // LA PROCHAINE FOIS RENOMMER TOUS LES BOUTONS EN N W S E et faire en sorte que tous les boutons puissent etre préssés pour aller à la suite
   chopperFeed();
 }
 
