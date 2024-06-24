@@ -1,19 +1,20 @@
 #include "images.h"
-//#include "functions.h"
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
 #define SCREEN_ADDRESS 0x3C
 #define OLED_RESET 0x3C
+Adafruit_SSD1306 display(128, 64, &Wire, -1);
 
 const int buttonUp = 14; //N
 const int buttonDown = 27; //S
 const int buttonLeft = 26; //W
 const int buttonRight = 25; //E
 
-Adafruit_SSD1306 display(128, 64, &Wire, -1);
-
+int money = 0;
+int bestScore = 0;
+int score = 0;
 int health;
 int hunger = 100;
 int sleepLevel = 100;
@@ -57,12 +58,105 @@ void displayMessageCenter(const char* message)
   display.display();
 }
 
-void displayMessageConfirmation()
+void waitForButtonPress()
 {
-  int ouiX = 14;
-  int nonX = 104;
-  int tempX;
-  int y = 60;
+  while(digitalRead(buttonUp) == HIGH) {
+    delay(10);
+  }
+
+  while(digitalRead(buttonUp) == LOW) {
+    delay(10);
+  }
+
+  delay(500);
+}
+
+void selectChopper() 
+{
+  bool firstChopper = true; //variable pour déterminer sur quel Chopper on se trouve
+  bool secondChopper = false; //variable pour déterminer sur quel Chopper on se trouve
+  delay(50); // petit délai pour laisser le temps au joueur de lâcher le bouton afin qu'il ne bouge pas instantanément
+
+  //affichage des Choppers
+  display.drawBitmap(15, 26, chopperBBrainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
+  display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
+  display.drawBitmap(12, 23, frame, 29, 31, WHITE); //affiche le cadre de sélection sur Chopper B
+
+  //boucle pour sélectionner un Chopper
+  while (selectedChopper == false)
+  {
+    display.clearDisplay();
+
+    if (firstChopper == true)
+    {
+      display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
+      display.drawBitmap(15, 26, chopperBBrainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
+      display.drawBitmap(87, 23, frame, 29, 31, WHITE); //affiche le cadre de sélection sur Chopper A
+    }
+    else
+    {
+      display.drawBitmap(15, 26, chopperBBrainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
+      display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
+      display.drawBitmap(12, 23, frame, 29, 31, WHITE); //affiche le cadre de sélection sur Chopper B
+    }
+
+
+    if (digitalRead(buttonLeft) == LOW || digitalRead(buttonRight) == LOW) //permet de changer de Chopper
+    {
+      if (firstChopper == true)
+      {
+        firstChopper = false;
+        secondChopper = true;
+      }
+      else
+      {
+        firstChopper = true;
+        secondChopper = false;
+      }
+      delay(200); //petit délai pour éviter un rebond
+    }
+
+    if (digitalRead(buttonUp) == LOW && firstChopper == true && secondChopper == false) //si on appuie sur le bouton 'N' et que le cadre est sur Chopper B on séléctionne Chopper B
+    { 
+      selectedChopper = true;
+      chopper1 = chopperBBrainPoint1; // Chopper B yeux ouverts
+      chopper2 = chopperBBrainPoint2; // Chopper B yeux fermés
+      chopperWalkingLeft = chopperBWalkingLeft; // Chopper B pour l'animation avec la jambe gauche
+      chopperWalkingRight = chopperBWalkingRight; // Chopper B pour l'animation avec la jambe droite
+      eatAnimationChopper[0] = eatAnimationChopperB1; //tableau contenant les images de l'animation de manger de Chopper B
+      eatAnimationChopper[1] = eatAnimationChopperB2;
+      eatAnimationChopper[2] = eatAnimationChopperB3;
+      eatAnimationChopper[3] = eatAnimationChopperB4;
+      eatAnimationChopper[4] = eatAnimationChopperB5;
+      eatAnimationChopper[5] = eatAnimationChopperB6;
+      eatAnimationChopper[6] = eatAnimationChopperB7;
+      eatAnimationChopper[7] = eatAnimationChopperB8;
+    }
+
+    if (digitalRead(buttonUp) == LOW && firstChopper == false && secondChopper == true) //si on appuie sur le bouton 'N' et que le cadre est sur Chopper A on séléctionne Chopper A
+    { 
+      selectedChopper = true; 
+      chopper1 = chopperABrainPoint1; // Chopper A yeux ouverts
+      chopper2 = chopperABrainPoint2; // Chopper A yeux fermés
+      chopperWalkingLeft = chopperAWalkingLeft; // Chopper A pour l'animation de marche avec la jambe gauche
+      chopperWalkingRight = chopperAWalkingRight; // Chopper A pour l'animation de marche avec la jambe droite
+      eatAnimationChopper[0] = eatAnimationChopperA1; //tableau contenant les images de l'animation de manger de Chopper A
+      eatAnimationChopper[1] = eatAnimationChopperA2;
+      eatAnimationChopper[2] = eatAnimationChopperA3;
+      eatAnimationChopper[3] = eatAnimationChopperA4;
+      eatAnimationChopper[4] = eatAnimationChopperA5;
+      eatAnimationChopper[5] = eatAnimationChopperA6;
+      eatAnimationChopper[6] = eatAnimationChopperA7;
+      eatAnimationChopper[7] = eatAnimationChopperA8;
+    }
+
+    display.display();
+  }
+  
+  int ouiX = 14; //position de la barre de soulignage sur 'Oui'
+  int nonX = 104; //position de la barre de soulignage sur 'Non'
+  int tempX; //variable temporaire pour échanger les positions des curseurs
+  int y = 60; //position de la barre de soulignage sur l'axe Y
   rep = 0; // on (re)met rep à 0 car si on appuie sur le bouton 'Non' rep prendra la valeur 2 et lorsque nous serons de retour dans cette fonction la boucle de validation ne tournera plus
 
   display.clearDisplay();
@@ -80,6 +174,7 @@ void displayMessageConfirmation()
   display.display();
   delay(500); // petit délai pour laisser le temps au joueur de lâcher le bouton afin que le curseur ne bouge pas instantanement
 
+  //boucle pour valider le choix du Chopper
   while (rep == 0)
   {
     //lecture des boutons : 'True' quand le bouton est appuyé et 'false' quand il est relaché
@@ -117,103 +212,14 @@ void displayMessageConfirmation()
       rep = 1;
     }
 
-    if (up && ouiX == 104) // on valide 'Non'
+    if (up && ouiX == 104) // on valide 'Non' et on retourne à la sélection du Chopper
     {
       rep = 2;
-      selectedChopper = 0;
+      selectedChopper = false;
       cursorX = 59;
       cursorY = 32;
+      delay(500); //attente de 500ms pour éviter les rebonds
     }
-  }
-}
-
-void waitForButtonPress()
-{
-  while(digitalRead(buttonUp) == HIGH) {
-    delay(10);
-  }
-
-  while(digitalRead(buttonUp) == LOW) {
-    delay(10);
-  }
-
-  delay(500);
-}
-
-void selectChopper() 
-{
-  delay(50); // petit délai pour laisser le temps au joueur de lâcher le bouton afin que le curseur ne bouge pas instantanement
-  while (selectedChopper == false) 
-  {
-    display.clearDisplay();
-    //lecture des boutons : 'True' quand le bouton est appuyé et 'false' quand il est relaché
-    bool up = digitalRead(buttonUp) == LOW;
-    bool down = digitalRead(buttonDown) == LOW;
-    bool left = digitalRead(buttonLeft) == LOW;
-    bool right = digitalRead(buttonRight) == LOW;
-
-    //limitation de la zone de déplacement du curseur
-    if(up && cursorY > 1) {cursorY--;}
-    if(down && cursorY < 63) {cursorY++;}
-    if(left && cursorX > 1) {cursorX--;}
-    if(right && cursorX < 127) {cursorX++;}
-
-    if (cursorX > 14 && cursorX < 39 && cursorY > 25 && cursorY < 52) 
-    {
-      display.drawBitmap(15, 26, chopperBBrainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
-      display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
-      display.drawBitmap(12, 23, frame, 29, 31, WHITE); //affiche le cadre
-      display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); // affiche le curseur main
-
-      if ((up + down + right + left) >= 2) 
-      { 
-        selectedChopper = true;
-        chopper1 = chopperBBrainPoint1; // Chopper B yeux ouverts
-        chopper2 = chopperBBrainPoint2; // Chopper B yeux fermés
-        chopperWalkingLeft = chopperBWalkingLeft; // Chopper B pour l'animation avec la jambe gauche
-        chopperWalkingRight = chopperBWalkingRight; // Chopper B pour l'animation avec la jambe droite
-        eatAnimationChopper[0] = eatAnimationChopperB1;
-        eatAnimationChopper[1] = eatAnimationChopperB2;
-        eatAnimationChopper[2] = eatAnimationChopperB3;
-        eatAnimationChopper[3] = eatAnimationChopperB4;
-        eatAnimationChopper[4] = eatAnimationChopperB5;
-        eatAnimationChopper[5] = eatAnimationChopperB6;
-        eatAnimationChopper[6] = eatAnimationChopperB7;
-        eatAnimationChopper[7] = eatAnimationChopperB8;
-      }
-    }
-    else if (cursorX > 89 && cursorX < 114 && cursorY > 25 && cursorY < 52) 
-    {
-      display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
-      display.drawBitmap(15, 26, chopperBBrainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
-      display.drawBitmap(87, 23, frame, 29, 31, WHITE); //affiche le cadre
-      display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); // affiche le curseur main
-      display.display();
-
-      if ((up + down + right + left) >= 2) 
-      { 
-        selectedChopper = true; 
-        chopper1 = chopperABrainPoint1; // Chopper A yeux ouverts
-        chopper2 = chopperABrainPoint2; // Chopper A yeux fermés
-        chopperWalkingLeft = chopperAWalkingLeft; // Chopper A pour l'animation de marche avec la jambe gauche
-        chopperWalkingRight = chopperAWalkingRight; // Chopper A pour l'animation de marche avec la jambe droite
-        eatAnimationChopper[0] = eatAnimationChopperA1;
-        eatAnimationChopper[1] = eatAnimationChopperA2;
-        eatAnimationChopper[2] = eatAnimationChopperA3;
-        eatAnimationChopper[3] = eatAnimationChopperA4;
-        eatAnimationChopper[4] = eatAnimationChopperA5;
-        eatAnimationChopper[5] = eatAnimationChopperA6;
-        eatAnimationChopper[6] = eatAnimationChopperA7;
-        eatAnimationChopper[7] = eatAnimationChopperA8;
-      }
-    }
-    else 
-    {
-      display.drawBitmap(15, 26, chopperBBrainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
-      display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
-      display.drawBitmap(cursorX, cursorY, mouseCursor, 11, 18, WHITE); // affiche le curseur flèche
-    }
-    display.display();
   }
 }
 
@@ -955,13 +961,12 @@ void firstLaunch()
     while (rep != 1)
     {
       selectChopper();
-      displayMessageConfirmation();
     }
     displayMessageCenter("Bravo !");
     delay(3000);
 
     xTaskCreatePinnedToCore(manageStats,"ManageAllStats",10000, NULL,1,NULL,0); //appelle la fonction manageStats sur le coeur 0
-    xTaskCreatePinnedToCore(displayHub,"DisplayStatsMenu",10000,NULL, 1,NULL,1);
+    xTaskCreatePinnedToCore(displayHub,"DisplayHub",10000,NULL, 1,NULL,1); //appelle la fonction displayHub sur le coeur 1
 }
 
 void setup()  
@@ -975,26 +980,9 @@ void setup()
   pinMode(buttonUp,INPUT_PULLUP);
   pinMode(buttonDown,INPUT_PULLUP);
   pinMode(buttonLeft,INPUT_PULLUP);
-  pinMode(buttonRight,INPUT_PULLUP);
+  pinMode(buttonRight,INPUT_PULLUP); //enlever ca 
 
-   displayIndex = 2;
-          chopper1 = chopperABrainPoint1; // Chopper A yeux ouverts
-        chopper2 = chopperABrainPoint2; // Chopper A yeux fermés
-        chopperWalkingLeft = chopperAWalkingLeft; // Chopper A pour l'animation de marche avec la jambe gauche
-        chopperWalkingRight = chopperAWalkingRight; // Chopper A pour l'animation de marche avec la jambe droite
-                eatAnimationChopper[0] = eatAnimationChopperB1;
-        eatAnimationChopper[1] = eatAnimationChopperB2;
-        eatAnimationChopper[2] = eatAnimationChopperB3;
-        eatAnimationChopper[3] = eatAnimationChopperB4;
-        eatAnimationChopper[4] = eatAnimationChopperB5;
-        eatAnimationChopper[5] = eatAnimationChopperB6;
-        eatAnimationChopper[6] = eatAnimationChopperB7;
-        eatAnimationChopper[7] = eatAnimationChopperB8;
-            xTaskCreatePinnedToCore(manageStats,"ManageAllStats",10000, NULL,1,NULL,0); //appelle la fonction manageStats sur le coeur 0
-
-
-  //firstLaunch(); // LA PROCHAINE FOIS RENOMMER TOUS LES BOUTONS EN N W S E et faire en sorte que tous les boutons puissent etre préssés pour aller à la suite
-  chopperFeed();
+  firstLaunch(); // LA PROCHAINE FOIS RENOMMER TOUS LES BOUTONS EN N W S E et faire en sorte que tous les boutons puissent etre préssés pour aller à la suite
 }
 
 void loop() 
