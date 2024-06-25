@@ -713,6 +713,7 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
   bool eyesOpen = true; //variable pour le clignotement des yeux
   bool animation = true; //variable pour l'animation de marche
   bool optionSelected = false; //variable pour savoir si une option a été sélectionnée quand on est dans le menu
+  bool gameSelected = false; //variable pour savoir si un jeu a été sélectionné
   bool page1 = true; //variable pour savoir si on est sur la page 1 du menu
   while (displayIndex == 0)
   {
@@ -757,7 +758,7 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
             display.drawBitmap(0, 0, hubMenuPage1, 128, 64, WHITE); //affiche l'image de la page 1 du menu
             display.drawBitmap(121, 38, rightArrow, 3, 5, WHITE); //affiche la flèche droite pour indiquer la page suivante
 
-            if (cursorX > 15 && cursorX < 49 && cursorY > 25 && cursorY < 31) //curseur sur l'option nourrir
+            if (cursorX > 13 && cursorX < 51 && cursorY > 23 && cursorY < 33) //curseur sur l'option nourrir
             {
               display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
               display.drawRect(12, 22, 39, 11, WHITE); //affiche le cadre autour de l'option nourrir
@@ -767,37 +768,83 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
                 displayIndex = 2; //on passe à l'écran de nourrissage
               }
             }
-            else if (cursorX > 82 && cursorX < 107 && cursorY > 25 && cursorY < 31) //curseur sur l'option jouer
+            else if (cursorX > 80 && cursorX < 109 && cursorY > 23 && cursorY < 33) //curseur sur l'option jouer
             {
               display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
               display.drawRect(79, 22, 30, 11, WHITE); //affiche le cadre autour de l'option jouer
               if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
               {
-                optionSelected = true;
-                displayIndex = 3; //on passe à l'écran de jeu
+                while (gameSelected == false)
+                {
+                  //lecture des boutons : 'True' quand le bouton est appuyé et 'false' quand il est relaché
+                  bool up = digitalRead(buttonUp) == LOW;
+                  bool down = digitalRead(buttonDown) == LOW;
+                  bool left = digitalRead(buttonLeft) == LOW;
+                  bool right = digitalRead(buttonRight) == LOW;
+                  //limitation de la zone de déplacement du curseur
+                  if(up && cursorY > 1) {cursorY--;}
+                  if(down && cursorY < 63) {cursorY++;}
+                  if(left && cursorX > 1) {cursorX--;}
+                  if(right && cursorX < 127) {cursorX++;}
+                  display.clearDisplay();
+                  display.drawBitmap(0, 0, hubGamesMenu, 128, 64, WHITE); //affiche l'image du menu de choix de jeu
+
+                  if (cursorX > 11 && cursorX < 62 && cursorY > 27 && cursorY < 37)
+                  {
+                    display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
+                    display.drawRect(12, 27, 50, 10, WHITE); //affiche le cadre autour de l'option jeu 1 (CanonShot)
+                    if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
+                    {
+                      gameSelected = true;
+                      optionSelected = true;
+                      displayIndex = 3; //on passe à l'écran du jeu 1 (CanonShot)
+                    }
+                  }
+                  else if (cursorX > 70 && cursorX < 126 && cursorY > 27 && cursorY < 37)
+                  {
+                    display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
+                    display.drawRect(71, 27, 50, 10, WHITE); //affiche le cadre autour de l'option jeu 2 (ChopperRun)
+                    if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
+                    {
+                      gameSelected = true;
+                      optionSelected = true;
+                      displayIndex = 4; //on passe à l'écran du jeu 2 (ChopperRun)
+                    }
+                  }
+                  else if (cursorX > 45 && cursorX < 87 && cursorY > 48 && cursorY < 58)
+                  {
+                    display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
+                    display.drawRect(46, 48, 40, 10, WHITE); //affiche le cadre autour de l'option retour
+                    if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
+                    {
+                      gameSelected = true;
+                    }
+                  }
+                }
+                gameSelected = false; //on remet la variable à false pour pouvoir retourner dans le menu de choix de jeu
               }
             }
-            else if (cursorX > 17 && cursorX < 47 && cursorY > 50 && cursorY < 56) //curseur sur l'option dormir
+            else if (cursorX > 15 && cursorX < 49 && cursorY > 48 && cursorY < 58) //curseur sur l'option dormir
             {
               display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
               display.drawRect(14, 47, 35, 11, WHITE); //affiche le cadre autour de l'option dormir
               if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
               {
                 optionSelected = true;
-                displayIndex = 4; //on passe à l'écran de sommeil
+                displayIndex = 5; //on passe à l'écran de sommeil
               }
             }
-            else if (cursorX > 82 && cursorX < 108 && cursorY > 50 && cursorY < 56) //curseur sur l'option hygiène
+            else if (cursorX > 80 && cursorX < 110 && cursorY > 48 && cursorY < 58) //curseur sur l'option hygiène
             {
               display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
               display.drawRect(79, 47, 31, 11, WHITE); //affiche le cadre autour de l'option hygiène
               if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
               {
                 optionSelected = true;
-                displayIndex = 5; //on passe à l'écran d'hygiène
+                displayIndex = 6; //on passe à l'écran d'hygiène
               }
             }
-            else if (cursorX > 119 && cursorX < 124 && cursorY > 37 && cursorY < 43) //curseur sur la flèche page suivante
+            else if (cursorX > 117 && cursorX < 126 && cursorY > 35 && cursorY < 45) //curseur sur la flèche page suivante
             {
               display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
               display.drawRect(117, 35, 10, 11, WHITE); //affiche le cadre autour de la flèche page suivante
@@ -811,12 +858,12 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
               display.drawBitmap(cursorX, cursorY, mouseCursor, 11, 18, WHITE); //affiche le curseur flèche
             }
           }
-          else //page 1 == false
+          else //page 1 == false , donc page 2
           {
             display.drawBitmap(0, 0, hubMenuPage2, 128, 64, WHITE); //affiche l'image de la page 2 du menu
             display.drawBitmap(7, 38, leftArrow, 3, 5, WHITE); //affiche la flèche gauche pour indiquer la page précédente
 
-            if (cursorX > 34 && cursorX < 95 && cursorY > 25 && cursorY < 31) //curseur sur l'option statistiques
+            if (cursorX > 32 && cursorX < 97 && cursorY > 23 && cursorY < 33) //curseur sur l'option statistiques
             {
               display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
               display.drawRect(31, 22, 66, 11, WHITE); //affiche le cadre autour de l'option statistiques
@@ -826,7 +873,7 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
                 displayIndex = 1; //on passe à l'écran des statistiques
               }
             }
-            else if (cursorX > 46 && cursorX < 82 && cursorY > 49 && cursorY < 55) //curseur sur l'option quitter
+            else if (cursorX > 44 && cursorX < 84 && cursorY > 47 && cursorY < 57) //curseur sur l'option quitter
             {
               display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
               display.drawRect(43, 46, 41, 11, WHITE); //affiche le cadre autour de l'option quitter
@@ -836,7 +883,7 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
                 displayIndex = 0; //on passe à l'écran de quitter
               }
             }
-            else if (cursorX > 6 && cursorX < 10 && cursorY > 37 && cursorY < 43) //curseur sur la flèche page précédente
+            else if (cursorX > 4 && cursorX < 12 && cursorY > 35 && cursorY < 45) //curseur sur la flèche page précédente
             {
               display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
               display.drawRect(4, 35, 10, 11, WHITE); //affiche le cadre autour de la flèche page précédente
@@ -930,15 +977,19 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
     chopperFeed();
   }
   /*
-  else if (displayIndex == 3) //si on a choisi jouer
+  else if (displayIndex == 3) //si on a choisi de jouer à CanonShot
   {
-    displayPlay();
+    displayCanonShot();
   }
-  else if (displayIndex == 4) //si on a choisi dormir
+  else if (displayIndex == 4) //si on a choisi de jouer à ChoppeRun
+  {
+    displayChopperRun();
+  }
+  else if (displayIndex == 5) //si on a choisi dormir
   {
     displaySleep();
   }
-  else if (displayIndex == 5) //si on a choisi hygiène
+  else if (displayIndex == 6) //si on a choisi hygiène
   {
     displayHygiene();
   } */
