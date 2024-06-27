@@ -137,10 +137,8 @@ void selectChopper()
         secondChopper = false;
       }
       delay(500); //petit délai pour éviter un rebond
-      delay(500); //petit délai pour éviter un rebond
     }
 
-    if (digitalRead(buttonUp) == LOW && firstChopper == false && secondChopper == true) //si on appuie sur le bouton 'N' et que le cadre est sur Chopper B on séléctionne Chopper B
     if (digitalRead(buttonUp) == LOW && firstChopper == false && secondChopper == true) //si on appuie sur le bouton 'N' et que le cadre est sur Chopper B on séléctionne Chopper B
     { 
       selectedChopper = true;
@@ -165,7 +163,6 @@ void selectChopper()
       sleepAnimation4 = sleepAnimationChopperB4;
     }
 
-    if (digitalRead(buttonUp) == LOW && firstChopper == true && secondChopper == false) //si on appuie sur le bouton 'N' et que le cadre est sur Chopper A on séléctionne Chopper A
     if (digitalRead(buttonUp) == LOW && firstChopper == true && secondChopper == false) //si on appuie sur le bouton 'N' et que le cadre est sur Chopper A on séléctionne Chopper A
     { 
       selectedChopper = true; 
@@ -192,7 +189,6 @@ void selectChopper()
 
     display.display();
   }
-  delay(200); //petit délai pour que la transition ne soit pas instatanée
   delay(200); //petit délai pour que la transition ne soit pas instatanée
   
   int ouiX = 14; //position de la barre de soulignage sur 'Oui'
@@ -289,18 +285,12 @@ void manageStats(void* parameter)
   happiness = 100;
   hygiene = 100;
   health = 100;
-  //à chaque réinitialisation du personnage, les statistiques sont remises à 100
-  hunger = 100;
-  sleepLevel = 100;
-  happiness = 100;
-  hygiene = 100;
-  health = 100;
   for(;;) {
     unsigned long currentMillis = millis();
     if(currentMillis - previousMillisHunger >= hungerInterval) 
     {
       previousMillisHunger = currentMillis;
-      if(hunger >= 0) 
+      if(hunger > 0) 
       {
         hunger--;
       }
@@ -309,7 +299,7 @@ void manageStats(void* parameter)
     if(currentMillis - previousMillisSleep >= sleepInterval) 
     {
       previousMillisSleep = currentMillis;
-      if(sleepLevel >= 0) 
+      if(sleepLevel > 0) 
       {
         sleepLevel--;
       }
@@ -318,7 +308,7 @@ void manageStats(void* parameter)
     if(currentMillis - previousMillisHappiness >= happinessInterval) 
     {
       previousMillisHappiness = currentMillis;
-      if(happiness >= 0) 
+      if(happiness > 0) 
       {
         happiness--;
       }
@@ -327,7 +317,7 @@ void manageStats(void* parameter)
     if(currentMillis - previousMillisHygiene >= hygieneInterval) 
     {
       previousMillisHygiene = currentMillis;
-      if(hygiene >= 0) 
+      if(hygiene > 0) 
       {
         hygiene--;
       }
@@ -1124,7 +1114,6 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
             {
               display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
               display.drawRect(12, 22, 38, 10, WHITE); //affiche le cadre autour de l'option nourrir
-              display.drawRect(12, 22, 38, 10, WHITE); //affiche le cadre autour de l'option nourrir
               if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
               {
                 optionSelected = true;
@@ -1137,7 +1126,6 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
               display.drawRect(79, 22, 30, 11, WHITE); //affiche le cadre autour de l'option jouer
               if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
               {
-                delay(500); //petit délai pour éviter que le curseur bouge dès le début
                 delay(500); //petit délai pour éviter que le curseur bouge dès le début
                 while (gameSelected == false)
                 {
@@ -1159,10 +1147,8 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
                   display.drawBitmap(0, 0, hubGamesMenu, screenWidth, screenHeight, WHITE); //affiche l'image du menu de choix de jeu
 
                   if (cursorX > 11 && cursorX < 57 && cursorY > 26 && cursorY < 35) //curseur sur l'option jeu 1 (CanonShot)
-                  if (cursorX > 11 && cursorX < 57 && cursorY > 26 && cursorY < 35) //curseur sur l'option jeu 1 (CanonShot)
                   {
                     display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
-                    display.drawRect(11, 26, 51, 11, WHITE); //affiche le cadre autour de l'option jeu 1 (CanonShot)
                     display.drawRect(11, 26, 51, 11, WHITE); //affiche le cadre autour de l'option jeu 1 (CanonShot)
                     if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
                     {
@@ -1172,10 +1158,8 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
                     }
                   }
                   else if (cursorX > 69 && cursorX < 120 && cursorY > 26 && cursorY < 35) //curseur sur l'option jeu  2 (ChopperRun)
-                  else if (cursorX > 69 && cursorX < 120 && cursorY > 26 && cursorY < 35) //curseur sur l'option jeu  2 (ChopperRun)
                   {
                     display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
-                    display.drawRect(70, 26, 57, 11, WHITE); //affiche le cadre autour de l'option jeu 2 (ChopperRun)
                     display.drawRect(70, 26, 57, 11, WHITE); //affiche le cadre autour de l'option jeu 2 (ChopperRun)
                     if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
                     {
@@ -1185,21 +1169,14 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
                     }
                   }
                   else if (cursorX > 44 && cursorX < 81 && cursorY > 47 && cursorY < 56) //curseur sur l'option retour
-                  else if (cursorX > 44 && cursorX < 81 && cursorY > 47 && cursorY < 56) //curseur sur l'option retour
                   {
                     display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
-                    display.drawRect(45, 47, 42, 11, WHITE); //affiche le cadre autour de l'option retour
                     display.drawRect(45, 47, 42, 11, WHITE); //affiche le cadre autour de l'option retour
                     if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
                     {
                       gameSelected = true;
                     }
                   }
-                  else
-                  {
-                    display.drawBitmap(cursorX, cursorY, mouseCursor, 11, 18, WHITE); //affiche le curseur flèche
-                  }
-                  display.display();  
                   else
                   {
                     display.drawBitmap(cursorX, cursorY, mouseCursor, 11, 18, WHITE); //affiche le curseur flèche
