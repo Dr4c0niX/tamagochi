@@ -2,12 +2,16 @@
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Preferences.h>
 
 #define SCREEN_ADDRESS 0x3C
 #define OLED_RESET 0x3C
 #define screenWidth 128
 #define screenHeight 64
 Adafruit_SSD1306 display(screenWidth, screenHeight, &Wire, -1);
+
+//on déclare un objet de type Preferences pour sauvegarder des variables
+Preferences preferences;
 
 //variables pour les threads
 volatile bool stopThreadOne = false; //variable pour arrêter le thread 1 quand health = 0
@@ -17,9 +21,6 @@ const int buttonUp = 14; //N
 const int buttonDown = 27; //S
 const int buttonLeft = 26; //W
 const int buttonRight = 25; //E
-
-//variables pour l'argent
-int money = 0;
 
 //variables pour les statistiques
 int health;
@@ -38,11 +39,12 @@ unsigned long previousMillisHappiness = 0;
 unsigned long currentMillis;
 
 //variables pour l'affichage
-int displayIndex = 0; //variable pour savoir quel écran afficher (0 = hub, 1 = menu des stats)
+int displayIndex = 0; //variable pour savoir quel écran afficher (0 = hub, 1 = statistiques, 2 = nourrir, 3 = jeu CanonShoot, 4 = jeu ChopperRun, 5 = dormir, 6 = hygiène)
 int cursorX = 59; //position de base du curseur sur l'axe X
 int cursorY = 32; //position de base du curseur sur l'axe Y
 
 //variables pour la sélection du Chopper
+bool loadChopperA = false; //variable pour savoir si on doit charger les images de Chopper A ou de Chopper B
 int rep = 0; // 1 pour oui et 2 pour non
 bool selectedChopper = false;
 const unsigned char* chopper1; //Chopper choisit avec les yeux ouverts
@@ -142,6 +144,7 @@ void selectChopper()
     if (digitalRead(buttonUp) == LOW && firstChopper == false && secondChopper == true) //si on appuie sur le bouton 'N' et que le cadre est sur Chopper B on séléctionne Chopper B
     { 
       selectedChopper = true;
+      loadChopperA = false; //on charge les images de Chopper B
       //on attribue les images de Chopper B aux variables
       chopper1 = chopperBBrainPoint1; // Chopper B yeux ouverts
       chopper2 = chopperBBrainPoint2; // Chopper B yeux fermés
@@ -165,6 +168,7 @@ void selectChopper()
 
     if (digitalRead(buttonUp) == LOW && firstChopper == true && secondChopper == false) //si on appuie sur le bouton 'N' et que le cadre est sur Chopper A on séléctionne Chopper A
     { 
+      loadChopperA = true; //on charge les images de Chopper A
       selectedChopper = true; 
       //on attribue les images de Chopper A aux variables
       chopper1 = chopperABrainPoint1; // Chopper A yeux ouverts
@@ -190,6 +194,10 @@ void selectChopper()
     display.display();
   }
   delay(200); //petit délai pour que la transition ne soit pas instatanée
+
+  //on enregistre le choix du Chopper dans la mémoire
+  preferences.putBool("loadChopperA", loadChopperA);
+  preferences.putBool("selectedChopper", selectedChopper);
   
   int ouiX = 14; //position de la barre de soulignage sur 'Oui'
   int nonX = 104; //position de la barre de soulignage sur 'Non'
@@ -267,7 +275,6 @@ void chopperDeath()
   selectedChopper = false;
   displayIndex = 0;
   rep = 0;
-  money = 0;
 
   display.clearDisplay();
   display.drawBitmap(0, 0, hubDeath, screenWidth, screenHeight, WHITE);
@@ -279,12 +286,6 @@ void chopperDeath()
 
 void manageStats(void* parameter) 
 {
-  //à chaque réinitialisation du personnage, les statistiques sont remises à 100
-  hunger = 100;
-  sleepLevel = 100;
-  happiness = 100;
-  hygiene = 100;
-  health = 100;
   for(;;) {
     unsigned long currentMillis = millis();
     if(currentMillis - previousMillisHunger >= hungerInterval) 
@@ -331,6 +332,11 @@ void manageStats(void* parameter)
       chopperDeath();
     }
     delay(1000);
+    //on sauvegarde les statistiques dans la mémoire
+    preferences.putInt("hunger", hunger);
+    preferences.putInt("sleepLevel", sleepLevel);
+    preferences.putInt("happiness", happiness);
+    preferences.putInt("hygiene", hygiene);
   }
 }
 
@@ -882,6 +888,71 @@ void chopperSleep()
   displayHub(NULL); //retour au hub
 }
 
+void chopperShower()
+{
+  display.clearDisplay();
+  display.drawBitmap(0, 0, shower1, screenWidth, screenHeight, WHITE); //affiche l'image 1 de la douche
+  display.display();
+  delay(1500); //affiche l'image pendant 1,5 seconde
+  display.clearDisplay();
+  display.drawBitmap(0, 0, shower2, screenWidth, screenHeight, WHITE); //affiche l'image 2 de la douche
+  display.display();
+  delay(1500); //affiche l'image pendant 1,5 seconde
+  display.clearDisplay();
+  display.drawBitmap(0, 0, shower1, screenWidth, screenHeight, WHITE); //affiche l'image 1 de la douche
+  display.display();
+  delay(1500); //affiche l'image pendant 1,5 seconde
+  display.clearDisplay();
+  display.drawBitmap(0, 0, shower2, screenWidth, screenHeight, WHITE); //affiche l'image 2 de la douche
+  display.display();
+  delay(1500); //affiche l'image pendant 1,5 seconde
+  //animation de transition
+  for (int x2 = screenWidth; x2 >= -47; x2-=3)
+  {
+    display.clearDisplay();
+    display.fillRect(0, 1, x2, screenHeight, WHITE );
+    display.drawBitmap(x2, 1, transition1, 8, screenHeight, WHITE);
+    display.drawBitmap(x2+8, 1, transition2, 8, screenHeight, WHITE);
+    display.drawBitmap(x2+16, 1, transition3, 7, screenHeight, WHITE);
+    display.drawBitmap(x2+23, 1, transition4, 8, screenHeight, WHITE);
+    display.drawBitmap(x2+31, 1, transition5, 8, screenHeight, WHITE);
+    display.drawBitmap(x2+39, 1, transition5, 8, screenHeight, WHITE);
+    display.display();
+  }
+  delay(500); //petit délai pour que la transition ne soit pas instatanée
+  int addHygiene = random(20, 61); 
+  hygiene += addHygiene; //ajoute un nombre aléatoire entre 20 et 60 à la propreté
+  if (hygiene > 100) //si la propreté dépasse 100, on la remet à 100
+  {
+    hygiene = 100;
+  }
+  display.clearDisplay();
+  display.drawRect(17, 17, 94, 43, WHITE); //affiche un cadre blanc
+  display.drawBitmap(25, 32, hygieneIcon, 18, 16, WHITE); //affiche l'icône de la propreté
+  display.setCursor(52, 27); 
+  display.print("Hygiene");  
+  display.setCursor(52, 41);
+  display.print("+" + String(addHygiene) + "%"); //affiche le pourcentage de propreté ajouté
+  display.display();
+  delay(4000);
+  //animation de transition
+  for (int x2 = screenWidth; x2 >= -47; x2-=2)
+  {
+    display.clearDisplay();
+    display.fillRect(0, 1, x2, screenHeight, WHITE );
+    display.drawBitmap(x2, 1, transition1, 8, screenHeight, WHITE);
+    display.drawBitmap(x2+8, 1, transition2, 8, screenHeight, WHITE);
+    display.drawBitmap(x2+16, 1, transition3, 7, screenHeight, WHITE);
+    display.drawBitmap(x2+23, 1, transition4, 8, screenHeight, WHITE);
+    display.drawBitmap(x2+31, 1, transition5, 8, screenHeight, WHITE);
+    display.drawBitmap(x2+39, 1, transition5, 8, screenHeight, WHITE);
+    display.display();
+  }
+  delay(1000);
+  displayIndex = 0;
+  displayHub(NULL); //retour au hub
+}
+
 void canonShoot()
 {    
   cursorX = 59; //position de base du curseur sur l'axe X
@@ -988,6 +1059,10 @@ void canonShoot()
         classicBestScore = score;
       }
     }
+
+    //on enregistre les meilleurs scores dans la mémoire
+    preferences.putInt("classicBestScore", classicBestScore);
+    preferences.putInt("hardBestScore", hardBestScore);
 
     display.clearDisplay();
     display.drawBitmap(0, 0, canonGameLoose, screenWidth, screenHeight, WHITE);
@@ -1355,10 +1430,10 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
   {
     chopperSleep();
   }
-  /* else if (displayIndex == 6) //si on a choisi hygiène
+  else if (displayIndex == 6) //si on a choisi laver
   {
-    displayHygiene();
-  } */
+    chopperShower();
+  }
 }
 
 void firstLaunch()
@@ -1385,6 +1460,13 @@ void firstLaunch()
   displayMessageCenter("Bravo !");
   delay(3000);
 
+  //à chaque réinitialisation du personnage, les statistiques sont remises à 100
+  hunger = 100;
+  sleepLevel = 100;
+  happiness = 100;
+  hygiene = 100;
+  health = 100;
+
   xTaskCreatePinnedToCore(manageStats,"ManageAllStats",10000, NULL,1,NULL,0); //appelle la fonction manageStats sur le coeur 0 
   xTaskCreatePinnedToCore(displayHub,"DisplayHub",10000,NULL, 1,NULL,1); //appelle la fonction displayHub sur le coeur 1
 }
@@ -1402,11 +1484,74 @@ void setup()
   pinMode(buttonLeft,INPUT_PULLUP);
   pinMode(buttonRight,INPUT_PULLUP);
 
-  //canonShoot();
+  preferences.begin("mesPrefs", false); // Ouvrir l'espace de noms "mesPrefs" en mode lecture/écriture
+  // Charger les variables
+  hunger = preferences.getInt("hunger", 0); // 0 est une valeur par défaut si la clé hunger n'est pas trouvée, pour toutes les autres variables qui suivent c'est la même chose
+  sleepLevel = preferences.getInt("sleepLevel", 0);
+  happiness = preferences.getInt("happiness", 0); 
+  hygiene = preferences.getInt("hygiene", 0);
+  selectedChopper = preferences.getBool("selectedChopper", false);
+  loadChopperA = preferences.getBool("loadChopperA", false);
+  classicBestScore = preferences.getInt("classicBestScore", 0);
+  hardBestScore = preferences.getInt("hardBestScore", 0);
 
-  firstLaunch(); // LA PROCHAINE FOIS RENOMMER TOUS LES BOUTONS EN N W S E et faire en sorte que tous les boutons puissent etre préssés pour aller à la suite
+
+  if (selectedChopper == false)
+  {
+    firstLaunch();
+  }
+  else
+  {
+    if (loadChopperA == false)
+    {
+      //on attribue les images de Chopper B aux variables
+      chopper1 = chopperBBrainPoint1; // Chopper B yeux ouverts
+      chopper2 = chopperBBrainPoint2; // Chopper B yeux fermés
+      chopperWalkingLeft = chopperBWalkingLeft; // Chopper B pour l'animation avec la jambe gauche
+      chopperWalkingRight = chopperBWalkingRight; // Chopper B pour l'animation avec la jambe droite
+      //tableau contenant les images de l'animation de manger de Chopper B
+      eatAnimationChopper[0] = eatAnimationChopperB1;
+      eatAnimationChopper[1] = eatAnimationChopperB2;
+      eatAnimationChopper[2] = eatAnimationChopperB3;
+      eatAnimationChopper[3] = eatAnimationChopperB4;
+      eatAnimationChopper[4] = eatAnimationChopperB5;
+      eatAnimationChopper[5] = eatAnimationChopperB6;
+      eatAnimationChopper[6] = eatAnimationChopperB7;
+      eatAnimationChopper[7] = eatAnimationChopperB8;
+      //images pour l'animation de dormir de Chopper B
+      sleepAnimation1 = sleepAnimationChopperB1;
+      sleepAnimation2 = sleepAnimationChopperB2;
+      sleepAnimation3 = sleepAnimationChopperB3;
+      sleepAnimation4 = sleepAnimationChopperB4;
+    }
+    else
+    {
+      //on attribue les images de Chopper A aux variables
+      chopper1 = chopperABrainPoint1; // Chopper A yeux ouverts
+      chopper2 = chopperABrainPoint2; // Chopper A yeux fermés
+      chopperWalkingLeft = chopperAWalkingLeft; // Chopper A pour l'animation de marche avec la jambe gauche
+      chopperWalkingRight = chopperAWalkingRight; // Chopper A pour l'animation de marche avec la jambe droite
+      //tableau contenant les images de l'animation de manger de Chopper A
+      eatAnimationChopper[0] = eatAnimationChopperA1;
+      eatAnimationChopper[1] = eatAnimationChopperA2;
+      eatAnimationChopper[2] = eatAnimationChopperA3;
+      eatAnimationChopper[3] = eatAnimationChopperA4;
+      eatAnimationChopper[4] = eatAnimationChopperA5;
+      eatAnimationChopper[5] = eatAnimationChopperA6;
+      eatAnimationChopper[6] = eatAnimationChopperA7;
+      eatAnimationChopper[7] = eatAnimationChopperA8;
+      //images pour l'animation de dormir de Chopper A
+      sleepAnimation1 = sleepAnimationChopperA1;
+      sleepAnimation2 = sleepAnimationChopperA2;
+      sleepAnimation3 = sleepAnimationChopperA3;
+      sleepAnimation4 = sleepAnimationChopperA4;
+    }
+    displayIndex = 0; //on commence sur l'écran du hub
+    xTaskCreatePinnedToCore(manageStats,"ManageAllStats",10000, NULL,1,NULL,0); //appelle la fonction manageStats sur le coeur 0 
+    xTaskCreatePinnedToCore(displayHub,"DisplayHub",10000,NULL, 1,NULL,1); //appelle la fonction displayHub sur le coeur 1
+  }
 }
 
 void loop() 
 {
-}
+}// LA PROCHAINE FOIS RENOMMER TOUS LES BOUTONS EN N W S E et faire en sorte que tous les boutons puissent etre préssés pour aller à la suite
