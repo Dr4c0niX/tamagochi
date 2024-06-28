@@ -3,6 +3,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Preferences.h>
+#include <ESP.h>
 
 #define SCREEN_ADDRESS 0x3C
 #define OLED_RESET 0x3C
@@ -17,10 +18,10 @@ Preferences preferences;
 volatile bool stopThreadOne = false; //variable pour arrêter le thread 1 quand health = 0
 
 //variables pour les boutons
-const int buttonUp = 14; //N
-const int buttonDown = 27; //S
-const int buttonLeft = 26; //W
-const int buttonRight = 25; //E
+const int buttonUp = 14; // ^
+const int buttonDown = 27; // v 
+const int buttonLeft = 26; // <
+const int buttonRight = 25; // >
 
 //variables pour les statistiques
 int health;
@@ -28,10 +29,10 @@ int hunger = 100;
 int sleepLevel = 100;
 int hygiene = 100;
 int happiness = 100;
-const long hungerInterval = 15000; // 15 secondes en millisecondes
-const long sleepInterval = 30000; // 30 secondes en millisecondes
-const long hygieneInterval = 20000; // 20 secondes en millisecondes
-const long happinessInterval = 10000; // 10 secondes en millisecondes
+const long hungerInterval = 15000; // 15 secondes en millisecondes (temps pour que la faim diminue de 1)
+const long sleepInterval = 30000; // 30 secondes en millisecondes (temps pour que le sommeil diminue de 1)
+const long hygieneInterval = 20000; // 20 secondes en millisecondes (temps pour que l'hygiène diminue de 1)
+const long happinessInterval = 10000; // 10 secondes en millisecondes (temps pour que le bonheur diminue de 1)
 unsigned long previousMillisHunger = 0;
 unsigned long previousMillisSleep = 0;
 unsigned long previousMillisHygiene = 0;
@@ -57,17 +58,22 @@ const unsigned char* sleepAnimation2; //image pour l'animation de dormir de Chop
 const unsigned char* sleepAnimation3; //image pour l'animation de dormir de Chopper
 const unsigned char* sleepAnimation4; //image pour l'animation de dormir de Chopper
 
-//variables pour les jeux
-int classicBestScore; //meilleur score du jeu CanonShoot en mode classique
-int hardBestScore; //meilleur score du jeu CanonShoot en mode difficile
-int score = 0;
-enum Direction {UP, DOWN, LEFT, RIGHT};
+//variables pour les jeux qui n'ont pas besoin d'être réinitialisées à chaque fois
+int canonShotBestScore; //meilleur score du jeu CanonShoot
+int chopperRunBestScore; //meilleur score du jeu ChopperRun
 const int frame1Width = 100;
 const int frame1Height = 10;
 const int ballSize = 10;
 const int frame2Size = 10;
+const int frame2X = 59;
+int gameSpeed = 1;
+int chopperFrame = 0;
+int birdFrame = 0;
+unsigned long lastFrameTime = 0;
+unsigned long lastBirdFrameTime = 0;
+const int chopperY = 64 - 16; // Position Y du chopper (bas de l'écran moins la hauteur de l'image)
 
-void displayMessageCenter(const char* message) 
+void displayMessageCenter(const char* message) //fonction pour afficher un message au centre de l'écran - on passe en paramètre le message à afficher
 {
   display.clearDisplay();
 
@@ -83,43 +89,45 @@ void displayMessageCenter(const char* message)
   display.display();
 }
 
-void waitForButtonPress()
+void waitForButtonPress() //fonction pour attendre que l'utilisateur appuie sur v
 {
-  while(digitalRead(buttonUp) == HIGH) {
+  while(digitalRead(buttonDown) == HIGH) 
+  {
     delay(10);
   }
 
-  while(digitalRead(buttonUp) == LOW) {
+  while(digitalRead(buttonDown) == LOW) 
+  {
     delay(10);
   }
 
-  delay(500);
+  delay(500); //petit délai pour éviter les rebonds
 }
 
-void selectChopper() 
+void selectChopper() //fonction pour sélectionner son skin de Chopper
 {
+  selectedChopper = false; //on remet selectedChopper à false pour pouvoir sélectionner un Chopper en cas de retour dans cette fonction
   bool firstChopper = true; //variable pour déterminer sur quel Chopper on se trouve
   bool secondChopper = false; //variable pour déterminer sur quel Chopper on se trouve
-  delay(50); // petit délai pour laisser le temps au joueur de lâcher le bouton afin qu'il ne bouge pas instantanément
-
-  //affichage des Choppers
-  display.drawBitmap(15, 26, chopperBBrainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
-  display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
-  display.drawBitmap(12, 23, frame, 29, 31, WHITE); //affiche le cadre de sélection sur Chopper B
+  delay(200); // petit délai pour laisser le temps au joueur de lâcher le bouton afin qu'il ne bouge pas instantanément
 
   //boucle pour sélectionner un Chopper
   while (selectedChopper == false)
   {
     display.clearDisplay();
+    display.drawBitmap(15, 26, chopperBBrainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
+    display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
 
     if (firstChopper == true)
     {
-      display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
+      //affichage des Choppers
       display.drawBitmap(15, 26, chopperBBrainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
+      display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
       display.drawBitmap(87, 23, frame, 29, 31, WHITE); //affiche le cadre de sélection sur Chopper A
     }
     else
     {
+      //affichage des Choppers
       display.drawBitmap(15, 26, chopperBBrainPoint1, 23, 25, WHITE); // affiche l'image de chopperB à gauche
       display.drawBitmap(90, 26, chopperABrainPoint1, 23 , 25, WHITE); // affiche l'image de chopperA à droite
       display.drawBitmap(12, 23, frame, 29, 31, WHITE); //affiche le cadre de sélection sur Chopper B
@@ -138,10 +146,10 @@ void selectChopper()
         firstChopper = true;
         secondChopper = false;
       }
-      delay(500); //petit délai pour éviter un rebond
+      delay(200); //petit délai pour éviter un rebond
     }
 
-    if (digitalRead(buttonUp) == LOW && firstChopper == false && secondChopper == true) //si on appuie sur le bouton 'N' et que le cadre est sur Chopper B on séléctionne Chopper B
+    if (digitalRead(buttonDown) == LOW && firstChopper == false && secondChopper == true) //si on appuie sur le bouton 'N' et que le cadre est sur Chopper B on séléctionne Chopper B
     { 
       selectedChopper = true;
       loadChopperA = false; //on charge les images de Chopper B
@@ -166,7 +174,7 @@ void selectChopper()
       sleepAnimation4 = sleepAnimationChopperB4;
     }
 
-    if (digitalRead(buttonUp) == LOW && firstChopper == true && secondChopper == false) //si on appuie sur le bouton 'N' et que le cadre est sur Chopper A on séléctionne Chopper A
+    if (digitalRead(buttonDown) == LOW && firstChopper == true && secondChopper == false) //si on appuie sur le bouton 'N' et que le cadre est sur Chopper A on séléctionne Chopper A
     { 
       loadChopperA = true; //on charge les images de Chopper A
       selectedChopper = true; 
@@ -201,64 +209,50 @@ void selectChopper()
   
   int ouiX = 14; //position de la barre de soulignage sur 'Oui'
   int nonX = 104; //position de la barre de soulignage sur 'Non'
-  int tempX; //variable temporaire pour échanger les positions des curseurs
   int y = 60; //position de la barre de soulignage sur l'axe Y
+  bool yes = true; //variable pour savoir si on est sur 'Oui'ou 'Non'
   rep = 0; // on (re)met rep à 0 car si on appuie sur le bouton 'Non' rep prendra la valeur 2 et lorsque nous serons de retour dans cette fonction la boucle de validation ne tournera plus
-
-  display.clearDisplay();
-  display.setCursor(20, 3);
-  display.println("Validez avec N.");
-  display.setCursor(25, 17);
-  display.println("Etes vous sur");
-  display.setCursor(17, 27);
-  display.println("de votre choix ?");
-  display.setCursor(10, 50);
-  display.println("Oui");
-  display.drawLine(ouiX, y, ouiX+7, y, WHITE); //affiche la barre de soulignage
-  display.setCursor(100, 50);
-  display.println("Non");
-  display.display();
   delay(500); // petit délai pour laisser le temps au joueur de lâcher le bouton afin que le curseur ne bouge pas instantanement
 
   //boucle pour valider le choix du Chopper
-  while (rep == 0)
+  while (rep == 0) //tant que l'utilisateur n'a pas validé son choix
   {
-    //lecture des boutons : 'True' quand le bouton est appuyé et 'false' quand il est relaché
-    bool up = digitalRead(buttonUp) == LOW;
-    bool down = digitalRead(buttonDown) == LOW;
-    bool left = digitalRead(buttonLeft) == LOW;
-    bool right = digitalRead(buttonRight) == LOW;
-    
-    if (left)
-    {
-      display.fillRect(ouiX, y, 8, 1, BLACK); //efface la barre de soulignage
-      display.drawLine(nonX, y, nonX+7, y, WHITE); //affiche la barre de soulignage pour savoir où on est
-      display.display();
-      tempX = ouiX;
-      ouiX = nonX;
-      nonX = tempX;
+    display.clearDisplay();
+    display.setCursor(20, 3);
+    display.println("Validez avec v.");
+    display.setCursor(25, 17);
+    display.println("Etes vous sur");
+    display.setCursor(17, 27);
+    display.println("de votre choix ?");
+    display.setCursor(10, 50);
+    display.println("Oui");
+    display.drawLine(ouiX, y, ouiX+7, y, WHITE); //affiche la barre de soulignage
+    display.setCursor(100, 50);
+    display.println("Non");
 
-      delay(500); //attente de 500ms pour éviter les rebonds
+    if (yes == true) //si on est sur 'Oui'
+    {
+      display.fillRect(nonX, y, 8, 1, BLACK); //efface la barre de soulignage de 'Non'
+      display.drawLine(ouiX, y, ouiX+7, y, WHITE); //affiche la barre de soulignage de 'Oui'
+    }
+    else //si on est sur 'Non'
+    {
+      display.fillRect(ouiX, y, 8, 1, BLACK); //efface la barre de soulignage de 'Oui'
+      display.drawLine(nonX, y, nonX+7, y, WHITE); //affiche la barre de soulignage de 'Non'
     }
 
-    if (right)
+    if (digitalRead(buttonLeft) == LOW || digitalRead(buttonRight) == LOW) //permet de changer de réponse
     {
-      display.fillRect(ouiX, y, 8, 1, BLACK); //efface la barre de soulignage
-      display.drawLine(nonX, y, nonX+7, y, WHITE); //affiche la barre de soulignage pour savoir où on est
-      display.display();
-      tempX = ouiX;
-      ouiX = nonX;
-      nonX = tempX;
-
-      delay(500); //attente de 500ms pour éviter les rebonds
+      yes = !yes;
+      delay(200); //attente de 200ms pour éviter les rebonds
     }
 
-    if (up && ouiX == 14) //on valide 'Oui'
+    if (digitalRead(buttonDown) == LOW && yes == true) //on valide 'Oui'
     {
       rep = 1;
     }
 
-    if (up && ouiX == 104) // on valide 'Non' et on retourne à la sélection du Chopper
+    if (digitalRead(buttonDown) == LOW && yes == false) // on valide 'Non' et on retourne à la sélection du Chopper
     {
       rep = 2;
       selectedChopper = false;
@@ -266,13 +260,13 @@ void selectChopper()
       cursorY = 32;
       delay(200); //attente de 200ms pour éviter les rebonds
     }
+    display.display();
   }
 }
 
-void chopperDeath() 
+void chopperDeath() //fonction pour afficher l'écran de mort de Chopper
 {
   //on réinitialise les variables à leur valeur d'origine
-  selectedChopper = false;
   displayIndex = 0;
   rep = 0;
 
@@ -284,7 +278,7 @@ void chopperDeath()
   firstLaunch();
 }
 
-void manageStats(void* parameter) 
+void manageStats(void* parameter) //fonction pour gérer les statistiques de Chopper - tourne sur le coeur 0 du processeur
 {
   for(;;) {
     unsigned long currentMillis = millis();
@@ -340,7 +334,7 @@ void manageStats(void* parameter)
   }
 }
 
-void displayHealthBar() 
+void displayHealthBar() //fonction pour afficher la barre de vie de Chopper 
 {
   bool infoWindow = false; //permet de savoir si la fenêtre d'information est ouverte ou non
   bool healthBarOn = true;
@@ -415,7 +409,7 @@ void displayHealthBar()
   }
 }
 
-void displayHungerBar()
+void displayHungerBar() //fonction pour afficher la barre de faim de Chopper
 {
   bool hungerBarOn = true;
   display.clearDisplay();
@@ -479,7 +473,7 @@ void displayHungerBar()
   }
 }
 
-void displaySleepBar() 
+void displaySleepBar() //fonction pour afficher la barre de sommeil de Chopper
 {
   bool sleepBarOn = true;
   display.clearDisplay();
@@ -543,7 +537,7 @@ void displaySleepBar()
   }
 }
 
-void displayHygieneBar() 
+void displayHygieneBar() //fonction pour afficher la barre de propreté de Chopper 
 {
   bool hygieneBarOn = true;
   display.clearDisplay();
@@ -607,7 +601,7 @@ void displayHygieneBar()
   }  
 }
 
-void displayHappinessBar() 
+void displayHappinessBar() //fonction pour afficher la barre de bonheur de Chopper 
 {
   bool happinessBarOn = true;
   display.clearDisplay();
@@ -665,7 +659,7 @@ void displayHappinessBar()
   }
 }
 
-void chopperFeed()
+void chopperFeed() //fonction qui montre l'animation pour nourrir Chopper
 {
   int x = 5;
   int y = 30;
@@ -808,7 +802,7 @@ void chopperFeed()
   displayHub(NULL);
 }
 
-void chopperSleep()
+void chopperSleep() //fonction qui montre l'animation pour faire dormir Chopper
 {
   display.clearDisplay();
   display.drawBitmap(0, 0, bedroomDoorclose, screenWidth, screenHeight, WHITE); //affiche la chambre de Chopper
@@ -888,7 +882,7 @@ void chopperSleep()
   displayHub(NULL); //retour au hub
 }
 
-void chopperShower()
+void chopperShower() //fonction qui montre l'animation pour laver Chopper
 {
   display.clearDisplay();
   display.drawBitmap(0, 0, shower1, screenWidth, screenHeight, WHITE); //affiche l'image 1 de la douche
@@ -953,24 +947,21 @@ void chopperShower()
   displayHub(NULL); //retour au hub
 }
 
-void canonShoot()
-{    
-  cursorX = 59; //position de base du curseur sur l'axe X
-  cursorY = 32; //position de base du curseur sur l'axe Y
-  int ballX; //position de la balle sur l'axe X
+void canonShoot() //fonction pour jouer au jeu CanonShoot 
+
+//le jeu fonctionne mais il n'est pas fini, il faudrait que je rajoute le système pour que la balle accélère au fur et à mesure
+//de plus je ne sais pas pourquoi mais quand on appuie sur 'rejouer' ca remet à 2 vies, l'affichage du score et du nombre de vie bug (il alterne entre la valeur actuelle et la précédente)
+//le meilleur score s'enregistre mais se supprime je ne sais pas pourquoi
+{   
+  //initialisation des variables
+  int ballX = 14; //position de départ de la balle
   int ballDirection = 1; //1 pour droite, -1 pour gauche
-  float ballSpeed = 1.0; //vitesse de la balle
-  const float ballAcceleration = 0.01; //accélération de la balle
-  const float ballMaxSpeed = 10.0; //vitesse maximale de la balle
+  int ballSpeed = 1; //vitesse de la balle de départ
   int score = 0; //score du joueur
-  int bestScore; //meilleur score du joueur
   int lives = 3; //nombre de vies du joueur
-  bool gamemodeSelected = false; //variable pour savoir si le joueur a sélectionné un mode de jeu
-  bool hardMode = false; //variable pour savoir si le mode difficile est sélectionné
   bool restart = true; //variable pour savoir si le joueur veut recommencer une partie ou quitter le jeu
-  Direction currentDirection; //direction actuelle de la balle (pour le mode difficile)
-  unsigned long previousMillis = 0;
-  unsigned long interval = 100; //interval de temps entre chaque déplacement de la balle = 0.1s
+  unsigned long gamePreviousMillis = 0;
+  unsigned long gameInterval = 200; //interval de temps entre chaque déplacement de la balle = 0.2s
 
   while (displayIndex == 3)
   {
@@ -979,108 +970,88 @@ void canonShoot()
       vTaskDelete(NULL);
     }
 
-    while (gamemodeSelected == false)
+    while (lives > 0)
     {
       if (stopThreadOne == true) //si stopThreadOne est vrai, on arrête la tâche sur le coeur 1 - on répète cette condition pour vérifier constamment l'état de stopThreadOne
       {
         vTaskDelete(NULL);
       }
-      //lecture des boutons : 'True' quand le bouton est appuyé et 'false' quand il est relaché
-      bool up = digitalRead(buttonUp) == LOW;
-      bool down = digitalRead(buttonDown) == LOW;
-      bool left = digitalRead(buttonLeft) == LOW;
-      bool right = digitalRead(buttonRight) == LOW;
-      
-      //limitation de la zone de déplacement du curseur
-      if(up && cursorY > 1) {cursorY--;}
-      if(down && cursorY < 63) {cursorY++;}
-      if(left && cursorX > 1) {cursorX--;}
-      if(right && cursorX < 127) {cursorX++;}
+            
+      unsigned long gameCurrentMillis = millis();
+      if (gameCurrentMillis - gamePreviousMillis >= gameInterval) //toutes les 0.2s
+      {
+        gamePreviousMillis = gameCurrentMillis;
+        //mise à jour de la position de la boule si elle n'est pas sur le bord et changer de direction si elle touche un bord
+        ballX += ballDirection * ballSpeed;
+        if (ballX <= 14 || ballX >= 104) {
+          ballDirection *= -1;
+        }
+      }
+
+      //affichage
       display.clearDisplay();
-      
-      //affichage du menu de sélection de la difficulté du jeu
-      display.clearDisplay();
-      display.drawBitmap(0, 0, hubCanonShot, screenWidth, screenHeight, WHITE);
+      display.drawBitmap(0, 0, canon1, screenWidth, screenHeight, WHITE); //affiche le fond
+      display.drawRect((screenWidth - frame1Width) / 2, screenHeight - frame1Height, frame1Width, frame1Height, WHITE); //affiche le cadre1
+      display.drawRect((screenWidth - frame2Size) / 2, screenHeight - frame1Height, frame2Size, frame2Size, WHITE); //affiche le cadre2
+      display.fillRect(ballX, screenHeight - frame1Height, ballSize, ballSize, WHITE); //affiche la balle
+      display.drawBitmap(0, 0, infoBar, screenWidth, 14, WHITE); //affiche la barre d'information
+      display.setCursor(31, 5);
+      display.print(score); //affiche le score
+      display.setCursor(104, 5);
+      display.print(lives);  //affiche le nombre de vies
 
-      if (cursorX > 13 && cursorX < 43 && cursorY > 26 && cursorY < 35) //curseur sur la difficulté 'normal'
+      if (digitalRead(buttonUp) == LOW || digitalRead(buttonDown) == LOW || digitalRead(buttonLeft) == LOW || digitalRead(buttonRight) == LOW) 
       {
-        display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
-        display.drawRect(12, 25, 35, 11, WHITE); //affiche le cadre autour de l'option normal
-        if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
+        if (ballX >= frame2X - 2 && ballX <= frame2X + 2) 
         {
-          gamemodeSelected = true;
+          score += 10;
+        } else if (ballX >= frame2X - ballSize && ballX <= frame2X + frame2Size) 
+        {
+          score += 2;
+        } else 
+        {
+          lives--;
         }
       }
-      else if (cursorX > 76 && cursorX < 116 && cursorY > 26 && cursorY < 35) //curseur sur la difficulté 'difficile'
-      {
-        display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
-        display.drawRect(75, 25, 46, 11, WHITE); //affiche le cadre autour de l'option difficile
-        if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
-        {
-          gamemodeSelected = true;
-          hardMode = true;
-        }
-      }
-      else if (cursorX > 45 && cursorX < 80 && cursorY > 49 && cursorY < 58) //curseur sur l'option 'quitter'
-      {
-        display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
-        display.drawRect(44, 48, 42, 11, WHITE); //affiche le cadre autour de l'option retour
-        if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
-        {
-          gamemodeSelected = true;
-          displayIndex = 0;
-          displayHub(NULL);
-        }
-      }
-      else
-      {
-        display.drawBitmap(cursorX, cursorY, mouseCursor, 11, 18, WHITE); //affiche le curseur flèche
-      }
-      display.display();  
-    }
-    gamemodeSelected = false; //on réinitialise la variable pour pouvoir rejouer plus tard
-
-    while (lives != 0)
-    {
-      //remplir ici pour le jeu
+      display.display();
+      delay(100);
     }
 
-    if (hardMode == true)
+    if (score > canonShotBestScore) //si le score est supérieur au meilleur score, on met à jour le meilleur score
     {
-      if (score > hardBestScore)
-      {
-        hardBestScore = score;
-      }
+      canonShotBestScore = score;
     }
-    else
-    {
-      if (score > classicBestScore)
-      {
-        classicBestScore = score;
-      }
-    }
-
     //on enregistre les meilleurs scores dans la mémoire
-    preferences.putInt("classicBestScore", classicBestScore);
-    preferences.putInt("hardBestScore", hardBestScore);
+    preferences.putInt("canonShotBestScore", canonShotBestScore);
 
+    //affiche l'image de fin de partie
+    delay(500);
     display.clearDisplay();
-    display.drawBitmap(0, 0, canonGameLoose, screenWidth, screenHeight, WHITE);
+    display.drawBitmap(0, 0, canonGameLoose, screenWidth, screenHeight, WHITE); 
     display.setCursor(45, 26);
     display.print(score);
     display.setCursor(86, 45);
-    if (hardMode == true)
-    {
-      display.print(hardBestScore);
-    }
-    else
-    {
-      display.print(classicBestScore);
-    }
+    display.print(canonShotBestScore);
     display.display();
     delay(3000); //délai de 3 secondes pour que l'utilisateur puisse voir son score
 
-    for (;;)
+    int addHappiness = random(20, 61);
+    happiness += addHappiness; //ajoute un nombre aléatoire entre 20 et 60 au bonheur
+    if (happiness > 100) //si le bonheur dépasse 100, on le remet à 100
+    {
+      happiness = 100;
+    }
+    display.clearDisplay();
+    display.drawRect(17, 17, 94, 43, WHITE); //affiche un cadre blanc
+    display.drawBitmap(25, 32, happyIcon, 18, 16, WHITE); //affiche l'icône du bonheur
+    display.setCursor(52, 27);
+    display.print("Bonheur");
+    display.setCursor(52, 41);
+    display.print("+" + String(addHappiness) + "%"); //affiche le pourcentage de bonheur ajouté
+    display.display();
+    delay(4000); //délai de 4 secondes pour que l'utilisateur puisse voir son bonheur augmenté
+
+    for (;;) //le joueur peut choisir de rejouer ou de quitter
     {
       if (stopThreadOne == true) //si stopThreadOne est vrai, on arrête la tâche sur le coeur 1 - on répète cette condition pour vérifier constamment l'état de stopThreadOne
       {
@@ -1107,23 +1078,23 @@ void canonShoot()
         delay(200); //pour éviter le rebond
       }
 
-      if (digitalRead(buttonUp) == LOW && restart == true) //si le joueur appuie sur le bouton du bas et que restart est sur 'rejouer', on recommence une partie
+      if (digitalRead(buttonDown) == LOW && restart == true) //si le joueur appuie sur le bouton du bas et que restart est sur 'rejouer', on recommence une partie
       {
         displayIndex = 3;
         canonShoot();
+        delay(500); //pour éviter que l'utilisateur reste appuyé sur le bouton et perde directement une vie
       }
-      else if (digitalRead(buttonUp) == LOW && restart == false) //si le joueur appuie sur le bouton du bas et que restart est sur 'quitter', on retourne au hub
+      else if (digitalRead(buttonDown) == LOW && restart == false) //si le joueur appuie sur le bouton du bas et que restart est sur 'quitter', on retourne au hub
       {
         displayIndex = 0;
         displayHub(NULL);
       }
       display.display();
     }
-
   }
 }
 
-void displayHub(void* parameter) //augmenter la hitbox des cadres
+void displayHub(void* parameter) //fonction pour afficher le hub - la où le joueur peut choisir ce qu'il veut faire
 {
   cursorX = 52; //position de départ de Chopper
   cursorY = 38; //position de départ de Chopper
@@ -1201,7 +1172,10 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
               display.drawRect(79, 22, 30, 11, WHITE); //affiche le cadre autour de l'option jouer
               if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
               {
-                delay(500); //petit délai pour éviter que le curseur bouge dès le début
+                optionSelected = true;
+                displayIndex = 3; //on passe à l'écran du jeu 1 (CanonShot)
+                //Cette partie est commentée car le jeu ChopperRun n'est pas fini
+                /* delay(500); //petit délai pour éviter que le curseur bouge dès le début
                 while (gameSelected == false)
                 {
                   if (stopThreadOne == true) //si stopThreadOne est vrai, on arrête la tâche sur le coeur 1 - on répète cette condition pour vérifier constamment l'état de stopThreadOne
@@ -1258,7 +1232,7 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
                   }
                   display.display();  
                 }
-                gameSelected = false; //on remet la variable à false pour pouvoir retourner dans le menu de choix de jeu
+                gameSelected = false; //on remet la variable à false pour pouvoir retourner dans le menu de choix de jeu */
               }
             }
             else if (cursorX > 15 && cursorX < 49 && cursorY > 48 && cursorY < 58) //curseur sur l'option dormir
@@ -1300,14 +1274,90 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
             display.drawBitmap(0, 0, hubMenuPage2, screenWidth, screenHeight, WHITE); //affiche l'image de la page 2 du menu
             display.drawBitmap(7, 38, leftArrow, 3, 5, WHITE); //affiche la flèche gauche pour indiquer la page précédente
 
-            if (cursorX > 32 && cursorX < 97 && cursorY > 23 && cursorY < 33) //curseur sur l'option statistiques
+            if (cursorX > 32 && cursorX < 95 && cursorY > 14 && cursorY < 23) //curseur sur l'option statistiques
             {
               display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
-              display.drawRect(31, 22, 66, 11, WHITE); //affiche le cadre autour de l'option statistiques
+              display.drawRect(31, 13, 66, 11, WHITE); //affiche le cadre autour de l'option statistiques
               if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
               {
                 optionSelected = true;
                 displayIndex = 1; //on passe à l'écran des statistiques
+              }
+            }
+            else if (cursorX > 32 && cursorX < 96 && cursorY > 30 && cursorY < 39) //curseur sur l'option réinitialiser
+            {
+              display.drawBitmap(cursorX, cursorY, handCursor, 17, 21, WHITE); //affiche le curseur main
+              display.drawRect(31, 29, 67, 11, WHITE); //affiche le cadre autour de l'option réinitialiser
+              if ((up + down + right + left) >= 2) //si deux boutons sont appuyés en même temps, on sélectionne l'option
+              {    
+                delay(200); //petit délai pour éviter que l'utilisateur appuie sur le bouton par erreur              
+                int ouiX = 14; //position de la barre de soulignage sur 'Oui'
+                int nonX = 104; //position de la barre de soulignage sur 'Non'
+                int y = 60; //position de la barre de soulignage sur l'axe Y
+                bool confirmSelected = false; //variable pour savoir si l'utilisateur a sélectionné l'option de confirmation
+                bool resetSelected = false; //variable pour savoir si l'utilisateur a sélectionné l'option de réinitialisation
+                display.clearDisplay();
+                display.setCursor(20, 3);
+                display.println("Validez avec v .");
+                display.setCursor(25, 17);
+                display.println("Etes vous sur");
+                display.setCursor(17, 27);
+                display.println("de votre choix ?");
+                display.setCursor(10, 50);
+                display.println("Oui");
+                display.setCursor(100, 50);
+                display.println("Non");               
+                display.drawLine(nonX, y, nonX+7, y, WHITE); //affiche la barre de soulignage de 'Non' (il faut le faire ici car si on le met dans while la barre sera toujours affichée sous 'Non')
+                display.display();
+                while (confirmSelected == false) //boucle pour valider le choix
+                {
+                  if (stopThreadOne == true) //si stopThreadOne est vrai, on arrête la tâche sur le coeur 1 - on répète cette condition pour vérifier constamment l'état de stopThreadOne
+                  {
+                    vTaskDelete(NULL);
+                  }
+
+                  if (resetSelected == true) //si on est sur 'Oui'
+                  {
+                    display.fillRect(nonX, y, 8, 1, BLACK); //efface la barre de soulignage de 'Non'
+                    display.drawLine(ouiX, y, ouiX+7, y, WHITE); //affiche la barre de soulignage de 'Oui'
+                  }
+                  else //si on est sur 'Non'
+                  {
+                    display.fillRect(ouiX, y, 8, 1, BLACK); //efface la barre de soulignage de 'Oui'
+                    display.drawLine(nonX, y, nonX+7, y, WHITE); //affiche la barre de soulignage de 'Non'
+                  }
+
+                  if (digitalRead(buttonLeft) == LOW || digitalRead(buttonRight) == LOW) //permet de changer de réponse
+                  {
+                    resetSelected = !resetSelected;
+                    delay(200); //attente de 200ms pour éviter les rebonds
+                  }
+
+                  if (digitalRead(buttonDown) == LOW && resetSelected == true) //on valide 'Oui' pour réinitialiser le personnage
+                  {
+                    confirmSelected = true;
+                    displayIndex = 0;
+                    cursorX = 59;
+                    cursorY = 32;
+                    //on fait mourrir Chopper pour le réinitialiser
+                    hunger = 0;
+                    hygiene = 0;
+                    happiness = 0;
+                    sleepLevel = 0;
+                    if (stopThreadOne == true) //si stopThreadOne est vrai, on arrête la tâche sur le coeur 1 - on répète cette condition pour vérifier constamment l'état de stopThreadOne
+                    {
+                      vTaskDelete(NULL);
+                    }
+                  }
+
+                  if (digitalRead(buttonDown) == LOW && resetSelected == false) // on valide 'Non' et on retourne au hub
+                  {
+                    confirmSelected = true;
+                    displayIndex = 0;
+                    displayHub(NULL);
+                  }
+                  display.display();
+                }
               }
             }
             else if (cursorX > 44 && cursorX < 84 && cursorY > 47 && cursorY < 57) //curseur sur l'option quitter
@@ -1422,10 +1472,10 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
   {
     canonShoot();
   }
-/*   else if (displayIndex == 4) //si on a choisi de jouer à ChoppeRun
+  /* else if (displayIndex == 4) //si on a choisi de jouer à ChopperRun
   {
-    displayChopperRun();
-  } */
+    chopperRun();
+  }  */
   else if (displayIndex == 5) //si on a choisi dormir
   {
     chopperSleep();
@@ -1436,12 +1486,15 @@ void displayHub(void* parameter) //augmenter la hitbox des cadres
   }
 }
 
-void firstLaunch()
+void firstLaunch() //fonction pour le premier lancement du jeu ou si le joueur a réinitialisé son personnage ou si le personnage est mort
 {
+  Serial.print("cette commande tourne sur le coeur : ");
+  Serial.println(xPortGetCoreID()); //affiche sur quel coeur tourne la commande
   stopThreadOne = false;
+  rep = 0; //variable pour savoir si le joueur a choisi son personnage - on la met içi pour pouvoir réinitialiser le personnage
   display.clearDisplay();
   display.setCursor(12, 20);
-  display.println("Appuyez sur N pour");
+  display.println("Appuyez sur v pour");
   display.setCursor(12, 35);
   display.println("passer a la suite.");
   display.display();
@@ -1450,8 +1503,6 @@ void firstLaunch()
   displayMessageCenter("Bienvenue !");
   waitForButtonPress();
   displayMessageCenter("Pour commencer, vous allez devoir choisir votre personnage.");
-  waitForButtonPress();
-  displayMessageCenter("Appuyez sur deux boutons en meme temps pour confirmer votre choix.");
   waitForButtonPress();
   while (rep != 1)
   {
@@ -1469,9 +1520,12 @@ void firstLaunch()
 
   xTaskCreatePinnedToCore(manageStats,"ManageAllStats",10000, NULL,1,NULL,0); //appelle la fonction manageStats sur le coeur 0 
   xTaskCreatePinnedToCore(displayHub,"DisplayHub",10000,NULL, 1,NULL,1); //appelle la fonction displayHub sur le coeur 1
+
+  delay(2000); //délai de 2 secondes pour que l'esp ai le temps d'enregistrer les variables avant de redémarrer
+  ESP.restart(); //redémarre le programme pour éviter des problèmes lors de la réinitialisation du personnage
 }
 
-void setup()  
+void setup() //fonction au démarrage de l'EPS32 - initialisation des variables et des paramètres
 {
   display.begin(SSD1306_SWITCHCAPVCC, OLED_RESET); 
   Serial.begin(115200);
@@ -1492,9 +1546,7 @@ void setup()
   hygiene = preferences.getInt("hygiene", 0);
   selectedChopper = preferences.getBool("selectedChopper", false);
   loadChopperA = preferences.getBool("loadChopperA", false);
-  classicBestScore = preferences.getInt("classicBestScore", 0);
-  hardBestScore = preferences.getInt("hardBestScore", 0);
-
+  canonShotBestScore = preferences.getInt("canonShotBestScore", 0);
 
   if (selectedChopper == false)
   {
@@ -1552,6 +1604,6 @@ void setup()
   }
 }
 
-void loop() 
+void loop() //fonction qui exécute du code en boucle – ici il est vide car toutes les fonctions sont reliées entre elles, la première étant appelée au démarrage
 {
-}// LA PROCHAINE FOIS RENOMMER TOUS LES BOUTONS EN N W S E et faire en sorte que tous les boutons puissent etre préssés pour aller à la suite
+}
